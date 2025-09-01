@@ -99,8 +99,8 @@ ini_set('display_errors', 1);
     <span class="sidebar-text">Core Human Capital</span>
   </a>
 
-  <a href="/web/hr3/shift/shift.php"
-     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/shift/shift.php') ? 'bg-gray-700 text-white' : ''; ?>">
+  <a href="/web/hr3/shift/hi.php"
+     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/shift/hi.php') ? 'bg-gray-700 text-white' : ''; ?>">
     <i data-lucide="wallet" class="w-5 h-5"></i>
     <span class="sidebar-text">Payroll Management</span>
   </a>
