@@ -88,7 +88,7 @@ ini_set('display_errors', 1);
              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2h6v2m2 0a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v8a2 2 0 002 2h10z"></path>
         </svg>
-        <h2 class="text-lg font-semibold text-gray-700">Active Projects</h2>
+        <h2 class="text-lg font-semibold text-gray-700">Payroll</h2>
       </div>
       <hr class="my-4">
       <!-- 👉 Add content for Card 3 here -->
