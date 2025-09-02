@@ -86,34 +86,34 @@ ini_set('display_errors', 1);
     $currentPage = $_SERVER['PHP_SELF'];
   ?>
 
-<a href="/web/hr3/index.php"
-   class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/index.php') ? 'bg-gray-700 text-white' : ''; ?>">
+<a href="index.php"
+   class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == 'index.php') ? 'bg-gray-700 text-white' : ''; ?>">
   <i data-lucide="Bar-chart-3" class="w-5 h-5"></i>
   <span class="sidebar-text">HR Analytics Dashboard</span>
 </a>
 
 
-  <a href="/web/hr3/timeAndattendance/time.php"
-     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/timeAndattendance/time.php') ? 'bg-gray-700 text-white' : ''; ?>">
+  <a href="time.php"
+     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == 'time.php') ? 'bg-gray-700 text-white' : ''; ?>">
     <i data-lucide="users" class="w-5 h-5"></i>
     <span class="sidebar-text">Core Human Capital</span>
   </a>
 
-  <a href="/web/hr3/timeAndattendance/shift.php"
-     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/timeAndattendance/shift.php') ? 'bg-gray-700 text-white' : ''; ?>">
+  <a href="shift.php"
+     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == 'shift.php') ? 'bg-gray-700 text-white' : ''; ?>">
     <i data-lucide="wallet" class="w-5 h-5"></i>
     <span class="sidebar-text">Payroll Management</span>
   </a>
 
-  <a href="/web/hr3/timesheet/timesheet.php"
-     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/timesheet/timesheet.php') ? 'bg-gray-700 text-white' : ''; ?>">
+  <a href="timesheet.php"
+     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == 'timesheet.php') ? 'bg-gray-700 text-white' : ''; ?>">
     <i data-lucide="clipboard-list" class="w-5 h-5"></i>
     <span class="sidebar-text">Compensation Planning</span>
   </a>
 
 
-  <a href="/web/hr3/claims/claims.php"
-     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == '/web/hr3/claims/claims.php') ? 'bg-gray-700 text-white' : ''; ?>">
+  <a href="claims.php"
+     class="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-700 <?php echo ($currentPage == 'claims.php') ? 'bg-gray-700 text-white' : ''; ?>">
     <i data-lucide="heart-pulse" class="w-5 h-5"></i>
     <span class="sidebar-text">HMO & Benefits Administration</span>
   </a>
