@@ -37,7 +37,7 @@ ini_set('display_errors', 1);
           <!-- Left: Title -->
           <h2 class="text-xl font-semibold text-gray-800" id="main-content-title">Claims </h2>
 
-  <?php include '../profile.php'; ?>
+  <?php include 'profile.php'; ?>
 
 
         </div>
