@@ -26,7 +26,7 @@ ini_set('display_errors', 1);
   <div class="flex h-full">
 
     <!-- Sidebar -->
-    <?php include '../sidebar.php'; ?>
+    <?php include 'sidebar.php'; ?>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-y-auto">
