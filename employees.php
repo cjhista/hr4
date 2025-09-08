@@ -15,22 +15,15 @@ if ($conn->connect_error) {
 }
 
 // Fetch employees from DB
-$sql = "SELECT id, first_name, last_name, position, department, status, salary, email, phone 
-        FROM employees ORDER BY id DESC";
-
+$sql = "SELECT id, first_name, last_name, position, department, status, salary, email, phone FROM employees ORDER BY id DESC";
 $result = $conn->query($sql);
 
 $employees = [];
-
-if ($result === false) {
-    // Debug error
-    die("SQL error: " . $conn->error);
-} elseif ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $employees[] = $row;
-    }
+if ($result->num_rows > 0) {
+  while ($row = $result->fetch_assoc()) {
+    $employees[] = $row;
+  }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
