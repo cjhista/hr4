@@ -1,17 +1,13 @@
 <?php
-
 $host = "localhost";
 $user = "root";       
 $pass = "";           
-$db   = "hrms";       
+$db   = "hr4_system";       
 
 $conn = new mysqli($host, $user, $pass, $db);
-
-
 if ($conn->connect_error) {
   die("Connection failed: " . $conn->connect_error);
 }
-
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_employee'])) {
   $first_name   = $_POST['first_name'];
@@ -25,12 +21,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_employee'])) {
 
   $sql = "INSERT INTO employees (first_name, last_name, email, phone, department, position, salary, status) 
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
   $stmt = $conn->prepare($sql);
   $stmt->bind_param("ssssssis", $first_name, $last_name, $email, $phone, $department, $position, $salary, $status);
 
   if ($stmt->execute()) {
-    echo "<script>alert('Employee added successfully!'); window.location.href='employees.php';</script>";
+    echo "<script>alert('Employee added successfully!'); window.location.href='employee.php';</script>";
   } else {
     echo "<script>alert('Error: " . $stmt->error . "');</script>";
   }
@@ -38,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_employee'])) {
 ?>
 
 <!-- Add Employee Modal -->
-<div id="addEmployeeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+<div id="addEmployeeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
   <div class="bg-white w-full max-w-lg rounded-xl shadow-lg p-6 relative">
     <h2 class="text-xl font-bold mb-4">Add New Employee</h2>
 
@@ -109,24 +104,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_employee'])) {
       </div>
 
       <div class="flex justify-end gap-2 mt-6">
-        <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button>
+        <button type="button" onclick="document.getElementById('addEmployeeModal').classList.add('hidden')" class="px-4 py-2 border rounded-lg">Cancel</button>
         <button type="submit" name="save_employee" class="px-4 py-2 bg-blue-900 text-white rounded-lg">Save</button>
       </div>
     </form>
   </div>
 </div>
-
-<script>
-  const addEmployeeBtn = document.querySelector("button.bg-blue-900");
-  const modal = document.getElementById("addEmployeeModal");
-
-  addEmployeeBtn.addEventListener("click", () => {
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-  });
-
-  function closeModal() {
-    modal.classList.remove("flex");
-    modal.classList.add("hidden");
-  }
-</script>
