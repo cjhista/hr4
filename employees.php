@@ -15,11 +15,12 @@ if ($conn->connect_error) {
 }
 
 // Fetch employees from DB
-$sql = "SELECT id, first_name, last_name, position, department, status, salary, email, phone FROM employees ORDER BY id DESC";
+$sql = "SELECT id, first_name, last_name, position, department, status, salary, email, phone 
+        FROM employees ORDER BY id DESC";
 $result = $conn->query($sql);
 
 $employees = [];
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
   while ($row = $result->fetch_assoc()) {
     $employees[] = $row;
   }
@@ -57,7 +58,7 @@ if ($result->num_rows > 0) {
       </div>
 
       <!-- Main -->
-      <main class="p-6 space-y-4" x-data="{ filter: 'all' }">
+      <main class="p-6 space-y-4">
 
         <!-- Employees Header -->
         <div class="flex items-center justify-between border-b py-6">
