@@ -100,28 +100,15 @@ function getRatingColor($rating) {
 
       <main class="p-6 space-y-6">
         
-    
-        <!-- Salary Adjustment Modal -->
-<div id="adjustSalaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
-  <div class="bg-white p-6 rounded-2xl shadow-lg w-96">
-    <h2 class="text-lg font-semibold mb-4">Adjust Salary</h2>
-    <form method="POST" action="">
-      <input type="hidden" name="emp_id" id="empId">
-      <div class="mb-3">
-        <label class="block text-sm text-gray-600">New Salary</label>
-        <input type="number" name="new_salary" id="newSalary" class="w-full border p-2 rounded-lg" required>
-      </div>
-      <div class="mb-3">
-        <label class="block text-sm text-gray-600">Reason</label>
-        <input type="text" name="reason" id="reason" class="w-full border p-2 rounded-lg" placeholder="Performance Review / Promotion" required>
-      </div>
-      <div class="flex justify-end gap-2">
-        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-300 rounded-lg">Cancel</button>
-        <button type="submit" name="adjust_salary" class="px-4 py-2 bg-blue-900 text-white rounded-lg">Save</button>
-      </div>
-    </form>
-  </div>
-</div>
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800">Compensation Planning</h1>
+            <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
+          </div>
+          <button class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i> Salary Adjustment
+          </button>
+        </div>
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

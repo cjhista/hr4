@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
               <option value="ACTIVE" <?php if($filter==='ACTIVE') echo 'selected'; ?>>Active</option>
               <option value="INACTIVE" <?php if($filter==='INACTIVE') echo 'selected'; ?>>Inactive</option>
             </select>
-            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Apply</button>
+            <button type="submit" class="bg-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800">Apply</button>
           </form>
 
           <!-- Add Employee Button -->
