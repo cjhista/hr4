@@ -1,8 +1,8 @@
 <?php
-$host = "localhost:3307";
-$user = "root";      // your MySQL username
-$pass = "";          // your MySQL password
-$db   = "hr4_system";
+$host = "localhost";
+$user = "root";      
+$pass = "";          
+$db   = "hr4_db";
 
 $conn = new mysqli($host, $user, $pass, $db);
 
