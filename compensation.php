@@ -232,36 +232,44 @@ function getRatingColor($rating) {
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+        <input type="text" name="employeeName" id="employeeName" 
+               class="w-full mt-1 px-3 py-2 border rounded-lg" 
+               placeholder="Enter employee name" required>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+        <input type="text" name="currentSalary" id="currentSalary" 
+               class="w-full mt-1 px-3 py-2 border rounded-lg" 
+               placeholder="Enter current salary" required>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">New Salary</label>
-        <input type="number" name="newSalary" id="newSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" placeholder="Enter new salary" required>
+        <input type="number" name="newSalary" id="newSalary" 
+               class="w-full mt-1 px-3 py-2 border rounded-lg" 
+               placeholder="Enter new salary" required>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Effective Date</label>
-        <input type="date" name="effectiveDate" id="effectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+        <input type="date" name="effectiveDate" id="effectiveDate" 
+               class="w-full mt-1 px-3 py-2 border rounded-lg" required>
       </div>
 
       <div class="flex justify-end mt-6 gap-2">
-        <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
+        <button id="cancelModal" type="button" 
+                class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
           Cancel
         </button>
-        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">
+        <button type="submit" 
+                class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">
           Save Adjustment
         </button>
       </div>
     </form>
   </div>
 </div>
-
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
