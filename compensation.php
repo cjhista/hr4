@@ -10,54 +10,58 @@ $pass = "";
 $db   = "hr4_db";
 
 $conn = new mysqli($host, $user, $pass, $db);
-
-// Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    die("Database Connection Failed: " . $conn->connect_error);
 }
 
-// Compensation summary
-$summaryQuery = "
+// Summary Query
+$sqlSummary = "
   SELECT 
-    SUM(salary) AS totalCompensation,
-    AVG(salary) AS averageSalary,
-    COUNT(CASE WHEN next_review <= CURDATE() + INTERVAL 30 DAY THEN 1 END) AS reviewsDue,
-    COUNT(CASE WHEN rating >= 4.5 THEN 1 END) AS highPerformers
-  FROM employees
+    SUM(c.salary) AS totalComp,
+    AVG(c.salary) AS avgSalary,
+    SUM(CASE WHEN c.next_review <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS reviewsDue,
+    SUM(CASE WHEN c.rating >= 4.5 THEN 1 ELSE 0 END) AS highPerformers
+  FROM compensation c
 ";
-$summary = $conn->query($summaryQuery)->fetch_assoc();
+$summary = $conn->query($sqlSummary)->fetch_assoc();
 
-$totalCompensation = "₱" . number_format($summary['totalCompensation'], 0);
-$averageSalary     = "₱" . number_format($summary['averageSalary'], 0);
-$reviewsDue        = $summary['reviewsDue'];
-$highPerformers    = $summary['highPerformers'];
+$totalCompensation = "₱" . number_format($summary['totalComp'] ?? 0, 2);
+$averageSalary     = "₱" . number_format($summary['avgSalary'] ?? 0, 2);
+$reviewsDue        = $summary['reviewsDue'] ?? 0;
+$highPerformers    = $summary['highPerformers'] ?? 0;
 
-// Employee compensation data
+// Employee Compensation Data
+$sqlEmployees = "
+  SELECT e.id, CONCAT(e.first_name, ' ', e.last_name) AS name, e.position AS role,
+         c.salary, c.rating, c.last_increase, c.last_increase_date,
+         c.market_min, c.market_max, c.median, c.next_review
+  FROM employees e
+  JOIN compensation c ON e.id = c.employee_id
+";
+$result = $conn->query($sqlEmployees);
+
 $employees = [];
-$employeeQuery = "SELECT id, CONCAT(first_name, ' ', last_name) AS name, position, salary, rating, 
-                         last_increase, last_increase_date, market_min, market_max, market_median, next_review, market_position
-                  FROM employees";
-$result = $conn->query($employeeQuery);
-
 while ($row = $result->fetch_assoc()) {
     $employees[] = [
         "id" => $row['id'],
         "name" => $row['name'],
-        "role" => $row['position'],
-        "salary" => "₱" . number_format($row['salary'], 0),
+        "role" => $row['role'],
+        "salary" => "₱" . number_format($row['salary'], 2),
         "rating" => $row['rating'] . "/5.0",
-        "lastIncrease" => "₱" . number_format($row['last_increase'], 0),
+        "lastIncrease" => "₱" . number_format($row['last_increase'], 2),
         "lastIncreaseDate" => $row['last_increase_date'],
         "marketRange" => "₱" . number_format($row['market_min'], 0) . " - ₱" . number_format($row['market_max'], 0),
-        "median" => "₱" . number_format($row['market_median'], 0),
+        "median" => "₱" . number_format($row['median'], 0),
         "nextReview" => $row['next_review'],
-        "marketPos" => $row['market_position']
+        "marketPos" => ($row['median'] > 0) 
+            ? round(($row['salary'] / $row['market_max']) * 100) 
+            : 0
     ];
 }
 
 // Helper function for rating color
 function getRatingColor($rating) {
-  $value = floatval(substr($rating, 0, 3)); 
+  $value = floatval($rating); 
   if ($value >= 4.0) {
     return "text-green-600 font-semibold";
   } elseif ($value >= 3.0) {
@@ -84,8 +88,10 @@ function getRatingColor($rating) {
 <body class="h-screen overflow-hidden">
   <div class="flex h-full">
 
+   
     <?php include 'sidebar.php'; ?>
 
+    
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Sticky Header -->
@@ -166,6 +172,7 @@ function getRatingColor($rating) {
             <div class="bg-white rounded-2xl shadow p-6">
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
+                  <!-- Avatar pulled from user_profile.php -->
                   <img src="user_profile.php?id=<?php echo $emp['id']; ?>&type=avatar"
                        alt="<?php echo $emp['name']; ?> Avatar"
                        class="w-10 h-10 rounded-full border border-gray-300 object-cover">
@@ -212,5 +219,31 @@ function getRatingColor($rating) {
       </main>
     </div>
   </div>
+
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      const sidebar = document.getElementById("sidebar");
+      const sidebarTexts = document.querySelectorAll(".sidebar-text");
+      const logoExpanded = document.querySelector(".sidebar-logo-expanded");
+      const logoCollapsed = document.querySelector(".sidebar-logo-collapsed");
+
+      sidebarToggle.addEventListener("click", function () {
+        sidebar.classList.toggle("w-64");
+        sidebar.classList.toggle("w-20");
+        if (sidebar.classList.contains("w-20")) {
+          sidebarTexts.forEach(el => el.classList.add("hidden"));
+          logoExpanded.classList.add("hidden");
+          logoCollapsed.classList.remove("hidden");
+        } else {
+          sidebarTexts.forEach(el => el.classList.remove("hidden"));
+          logoExpanded.classList.remove("hidden");
+          logoCollapsed.classList.add("hidden");
+        }
+        lucide.createIcons();
+      });
+    });
+  </script>
 </body>
 </html>
