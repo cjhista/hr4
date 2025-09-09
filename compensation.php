@@ -104,7 +104,7 @@ function getRatingColor($rating) {
             <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
           </div>
           <!-- ✅ Added Create New Salary button -->
-          <button class="createNewSalary bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+          <button class="createNewSalary bg-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800">
             <i data-lucide="plus" class="w-5 h-5"></i> Create New Salary
           </button>
         </div>
