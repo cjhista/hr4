@@ -3,56 +3,56 @@ $pageTitle = "HR 4 Compensation";
 $userName  = "User"; 
 $hotelName = "Hotel & Restaurant NAME";
 
+// Example Compensation Summary (replace with DB later)
+$totalCompensation = "₱1,512,000";
+$averageSalary     = "₱31,500";
+$reviewsDue        = 4;
+$highPerformers    = 2;
 
-include 'db.php';
+// Example Employee Compensation Data
+$employees = [
+  [
+    "id" => 1,
+    "name" => "Maria Santos",
+    "role" => "Front Desk Manager",
+    "salary" => "₱35,000",
+    "rating" => "4.5/5.0",
+    "lastIncrease" => "₱3,000 (9.4%)",
+    "lastIncreaseDate" => "1/15/2024 - Performance Review",
+    "marketRange" => "₱30,000 - ₱40,000",
+    "median" => "₱35,000",
+    "nextReview" => "1/15/2025",
+    "marketPos" => 50
+  ],
+  [
+    "id" => 2,
+    "name" => "John Dela Cruz",
+    "role" => "Head Chef",
+    "salary" => "₱45,000",
+    "rating" => "3.6/5.0",
+    "lastIncrease" => "₱5,000 (12.5%)",
+    "lastIncreaseDate" => "8/20/2023 - Promotion",
+    "marketRange" => "₱40,000 - ₱55,000",
+    "median" => "₱47,500",
+    "nextReview" => "12/20/2024",
+    "marketPos" => 33
+  ],
+  [
+    "id" => 3,
+    "name" => "Ana Reyes",
+    "role" => "Housekeeping Supervisor",
+    "salary" => "₱28,000",
+    "rating" => "2.8/5.0",
+    "lastIncrease" => "₱1,500 (5.6%)",
+    "lastIncreaseDate" => "10/01/2023 - Performance Review",
+    "marketRange" => "₱25,000 - ₱32,000",
+    "median" => "₱28,500",
+    "nextReview" => "10/01/2024",
+    "marketPos" => 45
+  ]
+];
 
-
-// Total Compensation
-$sql = "SELECT SUM(salary) AS total FROM compensation";
-$totalComp = $conn->query($sql)->fetch_assoc()['total'];
-$totalCompensation = "₱" . number_format($totalComp, 0);
-
-// Average Salary
-$sql = "SELECT AVG(salary) AS avg FROM compensation";
-$avgSalary = $conn->query($sql)->fetch_assoc()['avg'];
-$averageSalary = "₱" . number_format($avgSalary, 0);
-
-// Reviews Due in next 30 days
-$sql = "SELECT COUNT(*) AS due FROM compensation WHERE next_review <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)";
-$reviewsDue = $conn->query($sql)->fetch_assoc()['due'];
-
-// High Performers
-$sql = "SELECT COUNT(*) AS high FROM compensation WHERE rating >= 4.5";
-$highPerformers = $conn->query($sql)->fetch_assoc()['high'];
-
-
-$result = $conn->query($sql);
-$employees = [];
-
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $employees[] = [
-            "id" => $row['id'],
-            "name" => $row['name'],
-            "role" => $row['role'],
-            "salary" => "₱" . number_format($row['salary'], 0),
-            "rating" => $row['rating'] . "/5.0",
-            "lastIncrease" => "₱" . number_format($row['last_increase'], 0) . 
-                              " (" . $row['last_increase_percent'] . "%)",
-            "lastIncreaseDate" => date("m/d/Y", strtotime($row['last_increase_date'])) . 
-                                  " - " . $row['increase_reason'],
-            "marketRange" => "₱" . number_format($row['market_min'], 0) . 
-                             " - ₱" . number_format($row['market_max'], 0),
-            "median" => "₱" . number_format($row['median'], 0),
-            "nextReview" => date("m/d/Y", strtotime($row['next_review'])),
-            "marketPos" => $row['market_pos']
-        ];
-    }
-}
-
-// ===================
 // Helper function for rating color
-// ===================
 function getRatingColor($rating) {
   $value = floatval(substr($rating, 0, 3)); 
   if ($value >= 4.0) {
@@ -80,9 +80,11 @@ function getRatingColor($rating) {
 </head>
 <body class="h-screen overflow-hidden">
   <div class="flex h-full">
+
    
     <?php include 'sidebar.php'; ?>
 
+    
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Sticky Header -->
@@ -211,6 +213,7 @@ function getRatingColor($rating) {
     </div>
   </div>
 
+  
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       const sidebarToggle = document.getElementById("sidebarToggle");
