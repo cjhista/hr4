@@ -3,65 +3,58 @@ $pageTitle = "HR 4 Compensation";
 $userName  = "User"; 
 $hotelName = "Hotel & Restaurant NAME";
 
-// Database connection
-$host = "localhost:3307"; 
-$user = "root"; 
-$pass = ""; 
-$db   = "hr4_db";
 
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die("Database Connection Failed: " . $conn->connect_error);
-}
+include 'db.php';
 
-// Summary Query
-$sqlSummary = "
-  SELECT 
-    SUM(c.salary) AS totalComp,
-    AVG(c.salary) AS avgSalary,
-    SUM(CASE WHEN c.next_review <= DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS reviewsDue,
-    SUM(CASE WHEN c.rating >= 4.5 THEN 1 ELSE 0 END) AS highPerformers
-  FROM compensation c
-";
-$summary = $conn->query($sqlSummary)->fetch_assoc();
 
-$totalCompensation = "₱" . number_format($summary['totalComp'] ?? 0, 2);
-$averageSalary     = "₱" . number_format($summary['avgSalary'] ?? 0, 2);
-$reviewsDue        = $summary['reviewsDue'] ?? 0;
-$highPerformers    = $summary['highPerformers'] ?? 0;
+// Total Compensation
+$sql = "SELECT SUM(salary) AS total FROM compensation";
+$totalComp = $conn->query($sql)->fetch_assoc()['total'];
+$totalCompensation = "₱" . number_format($totalComp, 0);
 
-// Employee Compensation Data
-$sqlEmployees = "
-  SELECT e.id, CONCAT(e.first_name, ' ', e.last_name) AS name, e.position AS role,
-         c.salary, c.rating, c.last_increase, c.last_increase_date,
-         c.market_min, c.market_max, c.median, c.next_review
-  FROM employees e
-  JOIN compensation c ON e.id = c.employee_id
-";
-$result = $conn->query($sqlEmployees);
+// Average Salary
+$sql = "SELECT AVG(salary) AS avg FROM compensation";
+$avgSalary = $conn->query($sql)->fetch_assoc()['avg'];
+$averageSalary = "₱" . number_format($avgSalary, 0);
 
+// Reviews Due in next 30 days
+$sql = "SELECT COUNT(*) AS due FROM compensation WHERE next_review <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)";
+$reviewsDue = $conn->query($sql)->fetch_assoc()['due'];
+
+// High Performers
+$sql = "SELECT COUNT(*) AS high FROM compensation WHERE rating >= 4.5";
+$highPerformers = $conn->query($sql)->fetch_assoc()['high'];
+
+
+$result = $conn->query($sql);
 $employees = [];
-while ($row = $result->fetch_assoc()) {
-    $employees[] = [
-        "id" => $row['id'],
-        "name" => $row['name'],
-        "role" => $row['role'],
-        "salary" => "₱" . number_format($row['salary'], 2),
-        "rating" => $row['rating'] . "/5.0",
-        "lastIncrease" => "₱" . number_format($row['last_increase'], 2),
-        "lastIncreaseDate" => $row['last_increase_date'],
-        "marketRange" => "₱" . number_format($row['market_min'], 0) . " - ₱" . number_format($row['market_max'], 0),
-        "median" => "₱" . number_format($row['median'], 0),
-        "nextReview" => $row['next_review'],
-        "marketPos" => ($row['median'] > 0) 
-            ? round(($row['salary'] / $row['market_max']) * 100) 
-            : 0
-    ];
+
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $employees[] = [
+            "id" => $row['id'],
+            "name" => $row['name'],
+            "role" => $row['role'],
+            "salary" => "₱" . number_format($row['salary'], 0),
+            "rating" => $row['rating'] . "/5.0",
+            "lastIncrease" => "₱" . number_format($row['last_increase'], 0) . 
+                              " (" . $row['last_increase_percent'] . "%)",
+            "lastIncreaseDate" => date("m/d/Y", strtotime($row['last_increase_date'])) . 
+                                  " - " . $row['increase_reason'],
+            "marketRange" => "₱" . number_format($row['market_min'], 0) . 
+                             " - ₱" . number_format($row['market_max'], 0),
+            "median" => "₱" . number_format($row['median'], 0),
+            "nextReview" => date("m/d/Y", strtotime($row['next_review'])),
+            "marketPos" => $row['market_pos']
+        ];
+    }
 }
 
+// ===================
 // Helper function for rating color
+// ===================
 function getRatingColor($rating) {
-  $value = floatval($rating); 
+  $value = floatval(substr($rating, 0, 3)); 
   if ($value >= 4.0) {
     return "text-green-600 font-semibold";
   } elseif ($value >= 3.0) {
@@ -87,11 +80,9 @@ function getRatingColor($rating) {
 </head>
 <body class="h-screen overflow-hidden">
   <div class="flex h-full">
-
    
     <?php include 'sidebar.php'; ?>
 
-    
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Sticky Header -->
@@ -220,7 +211,6 @@ function getRatingColor($rating) {
     </div>
   </div>
 
-  
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       const sidebarToggle = document.getElementById("sidebarToggle");
