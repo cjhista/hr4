@@ -227,28 +227,27 @@ function getRatingColor($rating) {
       </button>
     </div>
 
-    <!-- ✅ Connected form -->
     <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
-      <input type="hidden" name="employeeId" id="employeeId">
+      <input type="hidden" name="employeeId" id="modalEmployeeId">
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+        <input type="text" id="modalEmployeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+        <input type="text" id="modalCurrentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">New Salary</label>
-        <input type="number" name="newSalary" id="newSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+        <input type="number" name="newSalary" id="modalNewSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Effective Date</label>
-        <input type="date" name="effectiveDate" id="effectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+        <input type="date" name="effectiveDate" id="modalEffectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
       </div>
 
       <div class="flex justify-end mt-6 gap-2">
@@ -259,7 +258,6 @@ function getRatingColor($rating) {
   </div>
 </div>
 
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("salaryModal");
@@ -268,16 +266,27 @@ document.addEventListener("DOMContentLoaded", function () {
   const openButtons = document.querySelectorAll(".openSalaryModal");
   const createNewButton = document.querySelector(".createNewSalary");
 
+  const employeeIdInput = document.getElementById("modalEmployeeId");
+  const employeeNameInput = document.getElementById("modalEmployeeName");
+  const currentSalaryInput = document.getElementById("modalCurrentSalary");
+  const newSalaryInput = document.getElementById("modalNewSalary");
+  const effectiveDateInput = document.getElementById("modalEffectiveDate");
+
   // Adjust Salary buttons
   openButtons.forEach(button => {
     button.addEventListener("click", function () {
-      const id = this.getAttribute("data-id");
-      const name = this.getAttribute("data-name");
-      const salary = this.getAttribute("data-salary");
+      const id = this.dataset.id;
+      const name = this.dataset.name;
+      const salary = this.dataset.salary;
 
-      document.getElementById("employeeId").value = id;
-      document.getElementById("employeeName").value = name;
-      document.getElementById("currentSalary").value = "₱" + parseInt(salary).toLocaleString();
+      console.log("Clicked:", { id, name, salary });
+
+      employeeIdInput.value = id || "";
+      employeeNameInput.value = name || "";
+      currentSalaryInput.value = salary ? "₱" + parseInt(salary).toLocaleString() : "";
+
+      newSalaryInput.value = "";
+      effectiveDateInput.value = "";
 
       modal.classList.remove("hidden");
       modal.classList.add("flex");
@@ -287,11 +296,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Create New Salary button
   if (createNewButton) {
     createNewButton.addEventListener("click", function () {
-      document.getElementById("employeeId").value = "";
-      document.getElementById("employeeName").value = "";
-      document.getElementById("currentSalary").value = "";
-      document.getElementById("newSalary").value = "";
-      document.getElementById("effectiveDate").value = "";
+      employeeIdInput.value = "";
+      employeeNameInput.value = "";
+      currentSalaryInput.value = "";
+      newSalaryInput.value = "";
+      effectiveDateInput.value = "";
 
       modal.classList.remove("hidden");
       modal.classList.add("flex");
