@@ -232,12 +232,12 @@ function getRatingColor($rating) {
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
       </div>
 
       <div>
         <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
       </div>
 
       <div>
@@ -261,6 +261,7 @@ function getRatingColor($rating) {
     </form>
   </div>
 </div>
+
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
