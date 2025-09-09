@@ -103,6 +103,10 @@ function getRatingColor($rating) {
             <h1 class="text-2xl font-bold text-gray-800">Compensation Planning</h1>
             <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
           </div>
+          <!-- ✅ Added Create New Salary button -->
+          <button class="createNewSalary bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <i data-lucide="plus" class="w-5 h-5"></i> Create New Salary
+          </button>
         </div>
 
         <!-- Summary Cards -->
@@ -224,12 +228,12 @@ function getRatingColor($rating) {
       <form class="mt-4 space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-          <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+          <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg">
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-          <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+          <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg">
         </div>
 
         <div>
@@ -260,7 +264,9 @@ function getRatingColor($rating) {
       const closeModal = document.getElementById("closeModal");
       const cancelModal = document.getElementById("cancelModal");
       const openButtons = document.querySelectorAll(".openSalaryModal");
+      const createNewButton = document.querySelector(".createNewSalary");
 
+      // For Adjust Salary buttons
       openButtons.forEach(button => {
         button.addEventListener("click", function () {
           const name = this.getAttribute("data-name");
@@ -274,6 +280,20 @@ function getRatingColor($rating) {
         });
       });
 
+      // For Create New Salary button
+      if (createNewButton) {
+        createNewButton.addEventListener("click", function () {
+          document.getElementById("employeeName").value = "";
+          document.getElementById("currentSalary").value = "";
+          document.getElementById("newSalary").value = "";
+          document.getElementById("effectiveDate").value = "";
+
+          modal.classList.remove("hidden");
+          modal.classList.add("flex");
+        });
+      }
+
+      // Close modal
       [closeModal, cancelModal].forEach(btn => {
         btn.addEventListener("click", () => {
           modal.classList.add("hidden");
