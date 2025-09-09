@@ -215,37 +215,40 @@ function getRatingColor($rating) {
     </div>
   </div>
 
-  <!-- Salary Adjustment Modal -->
-  <div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
-        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
+<!-- Salary Adjustment Modal -->
+<div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+    <div class="flex justify-between items-center border-b pb-3">
+      <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
+      <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <!-- ✅ Connected form -->
+    <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
+      <!-- hidden employee id -->
+      <input type="hidden" name="employeeId" id="employeeId">
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Employee Name</label>
+        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
       </div>
 
-      <form class="mt-4 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-          <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg">
-        </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Current Salary</label>
+        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-          <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg">
-        </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-600">New Salary</label>
+        <input type="number" name="newSalary" id="newSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" placeholder="Enter new salary" required>
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-600">New Salary</label>
-          <input type="number" id="newSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" placeholder="Enter new salary">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-600">Effective Date</label>
-          <input type="date" id="effectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg">
-        </div>
-      </form>
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Effective Date</label>
+        <input type="date" name="effectiveDate" id="effectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+      </div>
 
       <div class="flex justify-end mt-6 gap-2">
         <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
@@ -255,8 +258,9 @@ function getRatingColor($rating) {
           Save Adjustment
         </button>
       </div>
-    </div>
+    </form>
   </div>
+</div>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -266,19 +270,21 @@ function getRatingColor($rating) {
       const openButtons = document.querySelectorAll(".openSalaryModal");
       const createNewButton = document.querySelector(".createNewSalary");
 
-      // For Adjust Salary buttons
-      openButtons.forEach(button => {
-        button.addEventListener("click", function () {
-          const name = this.getAttribute("data-name");
-          const salary = this.getAttribute("data-salary");
+     // For Adjust Salary buttons
+openButtons.forEach(button => {
+  button.addEventListener("click", function () {
+    const id = this.getAttribute("data-id");
+    const name = this.getAttribute("data-name");
+    const salary = this.getAttribute("data-salary");
 
-          document.getElementById("employeeName").value = name;
-          document.getElementById("currentSalary").value = salary;
+    document.getElementById("employeeId").value = id;
+    document.getElementById("employeeName").value = name;
+    document.getElementById("currentSalary").value = salary;
 
-          modal.classList.remove("hidden");
-          modal.classList.add("flex");
-        });
-      });
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  });
+});
 
       // For Create New Salary button
       if (createNewButton) {

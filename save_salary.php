@@ -1,48 +1,53 @@
 <?php
 include 'db.php'; // DB connection
 
-$pageTitle = "HR 4 Compensation";
-$userName  = "User"; 
-$hotelName = "Hotel & Restaurant NAME";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $employeeId   = $_POST['employeeId'];
+    $newSalary    = $_POST['newSalary'];
+    $effectiveDate = $_POST['effectiveDate'];
 
-// Example Compensation Summary (pwede mong gawin dynamic later)
-$totalCompensation = "₱1,512,000";
-$averageSalary     = "₱31,500";
-$reviewsDue        = 4;
-$highPerformers    = 2;
+    // Validation (basic)
+    if (empty($employeeId) || empty($newSalary) || empty($effectiveDate)) {
+        die("⚠️ Missing required fields.");
+    }
 
-// Get employees from DB
-$sql = "SELECT * FROM employees WHERE status='Active'";
-$result = $conn->query($sql);
+    // 1. Kunin muna yung current salary ng employee
+    $sql = "SELECT salary FROM employees WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $employeeId);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$employees = [];
-if ($result && $result->num_rows > 0) {
-  while ($row = $result->fetch_assoc()) {
-    $employees[] = [
-      "id" => $row['id'],
-      "name" => $row['first_name'] . " " . $row['last_name'],
-      "role" => $row['role'],
-      "salary" => "₱" . number_format($row['salary'], 0),
-      "rating" => $row['rating'] . "/5.0",
-      "lastIncrease" => "₱" . number_format($row['last_increase'], 0),
-      "lastIncreaseDate" => $row['last_increase_date'],
-      "marketRange" => "₱25,000 - ₱50,000", // placeholder
-      "median" => "₱35,000",                // placeholder
-      "nextReview" => $row['next_review'],
-      "marketPos" => rand(30, 70)           // dummy % for now
-    ];
-  }
-}
+    if ($row = $result->fetch_assoc()) {
+        $currentSalary = $row['salary'];
+    } else {
+        die("⚠️ Employee not found.");
+    }
+    $stmt->close();
 
-// Helper function for rating color
-function getRatingColor($rating) {
-  $value = floatval(substr($rating, 0, 3)); 
-  if ($value >= 4.0) {
-    return "text-green-600 font-semibold";
-  } elseif ($value >= 3.0) {
-    return "text-yellow-600 font-semibold";
-  } else {
-    return "text-red-600 font-semibold";
-  }
+    // 2. I-save sa salary_adjustments table (para may history)
+    $sql = "INSERT INTO salary_adjustments (employee_id, old_salary, new_salary, effective_date) 
+            VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iiis", $employeeId, $currentSalary, $newSalary, $effectiveDate);
+
+    if ($stmt->execute()) {
+        // 3. Update employee table with new salary
+        $update = $conn->prepare("UPDATE employees SET salary = ? WHERE id = ?");
+        $update->bind_param("ii", $newSalary, $employeeId);
+        $update->execute();
+        $update->close();
+
+        // Redirect back to compensation page
+        header("Location: compensation.php?success=1");
+        exit;
+    } else {
+        echo "❌ Error: " . $stmt->error;
+    }
+
+    $stmt->close();
+    $conn->close();
+} else {
+    die("⚠️ Invalid request.");
 }
 ?>
