@@ -105,10 +105,15 @@ function getRatingColor($rating) {
             <h1 class="text-2xl font-bold text-gray-800">Compensation Planning</h1>
             <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
           </div>
-          <button class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-5 h-5"></i> Salary Adjustment
-          </button>
+        <button class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 openSalaryModal"
+        data-name="<?php echo $emp['name']; ?>"
+        data-salary="<?php echo $emp['salary']; ?>">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i> Adjust Salary
+        </button>
         </div>
+
+
+
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -238,5 +243,85 @@ function getRatingColor($rating) {
       });
     });
   </script>
+
+<!-- Salary Adjustment Modal -->
+<div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b pb-3">
+      <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
+      <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form class="mt-4 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Employee Name</label>
+        <input type="text" id="employeeName" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Current Salary</label>
+        <input type="text" id="currentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" readonly>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">New Salary</label>
+        <input type="number" id="newSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" placeholder="Enter new salary">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Effective Date</label>
+        <input type="date" id="effectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg">
+      </div>
+    </form>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-end mt-6 gap-2">
+      <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
+        Cancel
+      </button>
+      <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">
+        Save Adjustment
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("salaryModal");
+    const closeModal = document.getElementById("closeModal");
+    const cancelModal = document.getElementById("cancelModal");
+    const openButtons = document.querySelectorAll(".openSalaryModal");
+
+    // Open modal
+    openButtons.forEach(button => {
+      button.addEventListener("click", function () {
+        const name = this.getAttribute("data-name");
+        const salary = this.getAttribute("data-salary");
+
+        document.getElementById("employeeName").value = name;
+        document.getElementById("currentSalary").value = salary;
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      });
+    });
+
+    // Close modal
+    [closeModal, cancelModal].forEach(btn => {
+      btn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      });
+    });
+  });
+</script>
+
+
+
 </body>
 </html>
