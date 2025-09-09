@@ -175,11 +175,12 @@ function getRatingColor($rating) {
                 <div class="flex gap-2">
                   <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-sm">Review Due</span>
                   <!-- Adjust Salary button now has modal trigger -->
-                  <button class="openSalaryModal bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm"
-                    data-name="<?php echo $emp['name']; ?>"
-                    data-salary="<?php echo $emp['salary']; ?>">
-                    Adjust Salary
-                  </button>
+               <button class="openSalaryModal bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm"
+                data-id="<?php echo $emp['id']; ?>"
+                data-name="<?php echo $emp['name']; ?>"
+                data-salary="<?php echo preg_replace('/[^0-9]/', '', $emp['salary']); ?>">
+                Adjust Salary
+                </button>
                 </div>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
@@ -258,52 +259,54 @@ function getRatingColor($rating) {
 </div>
 
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const modal = document.getElementById("salaryModal");
-      const closeModal = document.getElementById("closeModal");
-      const cancelModal = document.getElementById("cancelModal");
-      const openButtons = document.querySelectorAll(".openSalaryModal");
-      const createNewButton = document.querySelector(".createNewSalary");
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("salaryModal");
+    const closeModal = document.getElementById("closeModal");
+    const cancelModal = document.getElementById("cancelModal");
+    const openButtons = document.querySelectorAll(".openSalaryModal");
+    const createNewButton = document.querySelector(".createNewSalary");
 
-     // For Adjust Salary buttons
-openButtons.forEach(button => {
-  button.addEventListener("click", function () {
-    const id = this.getAttribute("data-id");
-    const name = this.getAttribute("data-name");
-    const salary = this.getAttribute("data-salary");
+    // ✅ For Adjust Salary buttons
+    openButtons.forEach(button => {
+      button.addEventListener("click", function () {
+        const id = this.getAttribute("data-id");
+        const name = this.getAttribute("data-name");
+        const salary = this.getAttribute("data-salary");
 
-    document.getElementById("employeeId").value = id;
-    document.getElementById("employeeName").value = name;
-    document.getElementById("currentSalary").value = salary;
+        // Fill modal inputs
+        document.getElementById("employeeId").value = id;
+        document.getElementById("employeeName").value = name;
+        document.getElementById("currentSalary").value = "₱" + parseFloat(salary).toLocaleString();
 
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-  });
-});
-
-      // For Create New Salary button
-      if (createNewButton) {
-        createNewButton.addEventListener("click", function () {
-          document.getElementById("employeeName").value = "";
-          document.getElementById("currentSalary").value = "";
-          document.getElementById("newSalary").value = "";
-          document.getElementById("effectiveDate").value = "";
-
-          modal.classList.remove("hidden");
-          modal.classList.add("flex");
-        });
-      }
-
-      // Close modal
-      [closeModal, cancelModal].forEach(btn => {
-        btn.addEventListener("click", () => {
-          modal.classList.add("hidden");
-          modal.classList.remove("flex");
-        });
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
       });
     });
-  </script>
+
+    // ✅ For Create New Salary button
+    if (createNewButton) {
+      createNewButton.addEventListener("click", function () {
+        document.getElementById("employeeId").value = "";
+        document.getElementById("employeeName").value = "";
+        document.getElementById("currentSalary").value = "";
+        document.getElementById("newSalary").value = "";
+        document.getElementById("effectiveDate").value = "";
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      });
+    }
+
+    // ✅ Close modal
+    [closeModal, cancelModal].forEach(btn => {
+      btn.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      });
+    });
+  });
+</script>
 
 </body>
 </html>
