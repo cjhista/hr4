@@ -80,11 +80,8 @@ function getRatingColor($rating) {
 </head>
 <body class="h-screen overflow-hidden">
   <div class="flex h-full">
-
-   
     <?php include 'sidebar.php'; ?>
 
-    
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Sticky Header -->
@@ -100,13 +97,15 @@ function getRatingColor($rating) {
 
       <main class="p-6 space-y-6">
         
+        <!-- Page Title -->
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-gray-800">Compensation Planning</h1>
             <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
           </div>
-          <button class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-5 h-5"></i> Salary Adjustment
+          <!-- ✅ Added Create New Salary button -->
+          <button class="createNewSalary bg-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800">
+            <i data-lucide="plus" class="w-5 h-5"></i> Create New Salary
           </button>
         </div>
 
@@ -165,7 +164,6 @@ function getRatingColor($rating) {
             <div class="bg-white rounded-2xl shadow p-6">
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
-                  <!-- Avatar pulled from user_profile.php -->
                   <img src="user_profile.php?id=<?php echo $emp['id']; ?>&type=avatar"
                        alt="<?php echo $emp['name']; ?> Avatar"
                        class="w-10 h-10 rounded-full border border-gray-300 object-cover">
@@ -176,15 +174,21 @@ function getRatingColor($rating) {
                 </div>
                 <div class="flex gap-2">
                   <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-sm">Review Due</span>
-                  <button class="bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm">Adjust Salary</button>
+                  <!-- Adjust Salary button now has modal trigger -->
+               <button class="openSalaryModal bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm"
+    data-id="<?php echo $emp['id']; ?>"
+    data-name="<?php echo $emp['name']; ?>"
+    data-salary="<?php echo preg_replace('/[^0-9]/', '', $emp['salary']); ?>">
+    Adjust Salary
+</button>
+
                 </div>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p class="text-gray-500">Current Salary</p>
                   <p class="font-bold text-gray-900"><?php echo $emp['salary']; ?></p>
-                  <div class="mt-2"></div> 
-                  <p class="text-gray-500">Performance Rating</p>
+                  <p class="text-gray-500 mt-2">Performance Rating</p>
                   <p class="<?php echo getRatingColor($emp['rating']); ?>"><?php echo $emp['rating']; ?></p>
                 </div>
                 <div>
@@ -213,30 +217,104 @@ function getRatingColor($rating) {
     </div>
   </div>
 
-  
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const sidebar = document.getElementById("sidebar");
-      const sidebarTexts = document.querySelectorAll(".sidebar-text");
-      const logoExpanded = document.querySelector(".sidebar-logo-expanded");
-      const logoCollapsed = document.querySelector(".sidebar-logo-collapsed");
+<!-- Salary Adjustment Modal -->
+<div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+    <div class="flex justify-between items-center border-b pb-3">
+      <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
+      <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+    </div>
 
-      sidebarToggle.addEventListener("click", function () {
-        sidebar.classList.toggle("w-64");
-        sidebar.classList.toggle("w-20");
-        if (sidebar.classList.contains("w-20")) {
-          sidebarTexts.forEach(el => el.classList.add("hidden"));
-          logoExpanded.classList.add("hidden");
-          logoCollapsed.classList.remove("hidden");
-        } else {
-          sidebarTexts.forEach(el => el.classList.remove("hidden"));
-          logoExpanded.classList.remove("hidden");
-          logoCollapsed.classList.add("hidden");
-        }
-        lucide.createIcons();
-      });
+    <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
+      <input type="hidden" name="employeeId" id="modalEmployeeId">
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Employee Name</label>
+        <input type="text" id="modalEmployeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Current Salary</label>
+        <input type="text" id="modalCurrentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">New Salary</label>
+        <input type="number" name="newSalary" id="modalNewSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Effective Date</label>
+        <input type="date" name="effectiveDate" id="modalEffectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+      </div>
+
+      <div class="flex justify-end mt-6 gap-2">
+        <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">Cancel</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">Save Adjustment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("salaryModal");
+  const closeModal = document.getElementById("closeModal");
+  const cancelModal = document.getElementById("cancelModal");
+  const openButtons = document.querySelectorAll(".openSalaryModal");
+  const createNewButton = document.querySelector(".createNewSalary");
+
+  const employeeIdInput = document.getElementById("modalEmployeeId");
+  const employeeNameInput = document.getElementById("modalEmployeeName");
+  const currentSalaryInput = document.getElementById("modalCurrentSalary");
+  const newSalaryInput = document.getElementById("modalNewSalary");
+  const effectiveDateInput = document.getElementById("modalEffectiveDate");
+
+  // Adjust Salary buttons
+  openButtons.forEach(button => {
+    button.addEventListener("click", function () {
+      const id = this.dataset.id;
+      const name = this.dataset.name;
+      const salary = this.dataset.salary;
+
+      console.log("Clicked:", { id, name, salary });
+
+      employeeIdInput.value = id || "";
+      employeeNameInput.value = name || "";
+      currentSalaryInput.value = salary ? "₱" + parseInt(salary).toLocaleString() : "";
+
+      newSalaryInput.value = "";
+      effectiveDateInput.value = "";
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
     });
-  </script>
+  });
+
+  // Create New Salary button
+  if (createNewButton) {
+    createNewButton.addEventListener("click", function () {
+      employeeIdInput.value = "";
+      employeeNameInput.value = "";
+      currentSalaryInput.value = "";
+      newSalaryInput.value = "";
+      effectiveDateInput.value = "";
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    });
+  }
+
+  // Close modal
+  [closeModal, cancelModal].forEach(btn => {
+    btn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    });
+  });
+});
+</script>
 </body>
 </html>
