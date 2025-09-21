@@ -228,7 +228,7 @@ $employees = getEmployees();
           <?php endforeach; ?>
         </div>
 
-        <!-- Salary Adjustment Modal -->
+     <!-- Salary Adjustment Modal -->
 <div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
   <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
     <div class="flex justify-between items-center border-b pb-3">
@@ -237,31 +237,47 @@ $employees = getEmployees();
         <i data-lucide="x" class="w-6 h-6"></i>
       </button>
     </div>
-    <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
-      <input type="hidden" name="employeeId" id="modalEmployeeId">
-      <div>
-        <label class="block text-sm font-medium text-gray-600">Employee Name</label>
-        <input type="text" id="modalEmployeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600">Current Salary</label>
-        <input type="text" id="modalCurrentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600">New Salary</label>
-        <input type="number" name="newSalary" id="modalNewSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600">Effective Date</label>
-        <input type="date" name="effectiveDate" id="modalEffectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
-      </div>
-      <div class="flex justify-end mt-6 gap-2">
-        <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">Cancel</button>
-        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">Save Adjustment</button>
-      </div>
-    </form>
+   <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
+  <input type="hidden" name="employeeId" id="modalEmployeeId">
+
+  <div>
+    <label>Employee Name</label>
+    <input type="text" name="employeeName" id="modalEmployeeName"
+           class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
+  </div>
+
+  <div>
+    <label>Current Salary</label>
+    <input type="text" name="currentSalary" id="modalCurrentSalary"
+           class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
+  </div>
+
+  <div>
+    <label>New Salary</label>
+    <input type="number" name="newSalary" id="modalNewSalary"
+           class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+  </div>
+
+  <div>
+    <label>Effective Date</label>
+    <input type="date" name="effectiveDate" id="modalEffectiveDate"
+           class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+  </div>
+
+  <div class="flex justify-end mt-6 gap-2">
+    <button type="button" id="cancelModal"
+            class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
+      Cancel
+    </button>
+    <button type="submit"
+            class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">
+      Save Adjustment
+    </button>
+  </div>
+</form>
   </div>
 </div>
+
       </main>
     </div>
   </div>

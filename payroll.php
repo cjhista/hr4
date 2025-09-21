@@ -169,7 +169,7 @@ foreach ($payroll as $p) {
           <button id="sidebarToggle" class="text-gray-600 hover:text-gray-800 focus:outline-none">
             <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
           </button>
-          <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM</h1>
+          <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM supot</h1>
         </div>
         <h1 class="text-lg font-semibold text-gray-600"><?php echo $hotelName; ?></h1>
       </div>
