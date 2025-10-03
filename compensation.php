@@ -2,7 +2,7 @@
 $host = "localhost:3307";
 $user = "root";
 $pass = "";
-$db   = "compensation";
+$db   = "hr4_db";
 
 function getDbConnection() {
   global $host, $user, $pass, $db;
@@ -13,46 +13,61 @@ function getDbConnection() {
   return $conn;
 }
 
-function getPageTitle() {
-  return "HR 4 Compensation";
-}
-
-function getUserName() {
-  return "User";
-}
-
-function getHotelName() {
-  return "Hotel & Restaurant NAME";
-}
+function getPageTitle() { return "HR 4 Compensation"; }
+function getUserName() { return "User"; }
+function getHotelName() { return "Hotel & Restaurant NAME"; }
 
 function getCompensationSummary() {
   $conn = getDbConnection();
-  $sql = "SELECT totalCompensation, averageSalary, reviewsDue, highPerformers FROM compensation_summary LIMIT 1";
+  $sql = "SELECT 
+            SUM(salary) AS totalComp,
+            AVG(salary) AS avgSalary,
+            SUM(CASE WHEN nextReview <= CURDATE() + INTERVAL 30 DAY THEN 1 ELSE 0 END) AS reviewsDue,
+            SUM(CASE WHEN rating >= 4.5 THEN 1 ELSE 0 END) AS highPerformers
+          FROM employees";
   $result = $conn->query($sql);
   $row = $result->fetch_assoc();
   $conn->close();
-  return $row ? $row : [
-    "totalCompensation" => "₱1,000",
-    "averageSalary"     => "₱31,500",
-    "reviewsDue"        => 4,
-    "highPerformers"    => 2
+  return $row ? [
+    "totalCompensation" => "₱" . number_format($row['totalComp'], 0),
+    "averageSalary"     => "₱" . number_format($row['avgSalary'], 0),
+    "reviewsDue"        => $row['reviewsDue'],
+    "highPerformers"    => $row['highPerformers']
+  ] : [
+    "totalCompensation" => "₱0",
+    "averageSalary"     => "₱0",
+    "reviewsDue"        => 0,
+    "highPerformers"    => 0
   ];
 }
 
 function getEmployees() {
   $conn = getDbConnection();
-  $sql = "SELECT * FROM employees";
+  $sql = "SELECT id, first_name, last_name, position, department, salary, status, rating, nextReview 
+          FROM employees";
   $result = $conn->query($sql);
   $employees = [];
   while ($row = $result->fetch_assoc()) {
-    $employees[] = $row;
+    $employees[] = [
+      "id" => $row["id"],
+      "name" => $row["first_name"] . " " . $row["last_name"],
+      "role" => $row["position"] . " - " . $row["department"],
+      "salary" => "₱" . number_format($row["salary"], 0),
+      "rating" => number_format($row["rating"], 1),
+      "lastIncrease" => "₱" . number_format($row["salary"] * 0.05, 0),
+      "lastIncreaseDate" => "2025-01-01", 
+      "marketRange" => "₱25,000 - ₱60,000",
+      "median" => "₱40,000",
+      "nextReview" => $row["nextReview"] ?? "N/A",
+      "marketPos" => rand(40, 90)
+    ];
   }
   $conn->close();
   return $employees;
 }
 
 function getRatingColor($rating) {
-  $value = floatval(substr($rating, 0, 3)); 
+  $value = floatval($rating); 
   if ($value >= 4.0) {
     return "text-green-600 font-semibold";
   } elseif ($value >= 3.0) {
@@ -62,9 +77,6 @@ function getRatingColor($rating) {
   }
 }
 
-
-
-// Usage example:
 $pageTitle = getPageTitle();
 $userName = getUserName();
 $hotelName = getHotelName();
@@ -92,18 +104,16 @@ $employees = getEmployees();
 <body class="h-screen overflow-hidden">
   <div class="flex h-full">
 
-   
     <?php include 'sidebar.php'; ?>
 
-    
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Sticky Header -->
       <div class="flex items-center justify-between border-b py-4 bg-white sticky top-0 z-50 px-6">
         <div class="flex items-center gap-4">
           <button id="sidebarToggle" class="text-gray-600 hover:text-gray-800 focus:outline-none">
-  <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
-</button>
+            <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
+          </button>
           <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM</h1>
         </div>
         <h1 class="text-lg font-semibold text-gray-600"><?php echo $hotelName; ?></h1>
@@ -117,8 +127,8 @@ $employees = getEmployees();
             <p class="text-gray-500 text-sm">Manage salary adjustments and performance-based incentives</p>
           </div>
           <button id="openSalaryModalMain" class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-  <i data-lucide="plus-circle" class="w-5 h-5"></i> Salary Adjustment
-</button>
+            <i data-lucide="plus-circle" class="w-5 h-5"></i> Salary Adjustment
+          </button>
         </div>
 
         <!-- Summary Cards -->
@@ -176,7 +186,6 @@ $employees = getEmployees();
             <div class="bg-white rounded-2xl shadow p-6">
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
-                  <!-- Avatar pulled from user_profile.php -->
                   <img src="user_profile.php?id=<?php echo $emp['id']; ?>&type=avatar"
                        alt="<?php echo $emp['name']; ?> Avatar"
                        class="w-10 h-10 rounded-full border border-gray-300 object-cover">
@@ -188,13 +197,13 @@ $employees = getEmployees();
                 <div class="flex gap-2">
                   <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-sm">Review Due</span>
                   <button
-  class="openSalaryModal bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm"
-  data-id="<?php echo $emp['id']; ?>"
-  data-name="<?php echo $emp['name']; ?>"
-  data-salary="<?php echo preg_replace('/[^0-9]/', '', $emp['salary']); ?>"
->
-  Adjust Salary
-</button>
+                    class="openSalaryModal bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm"
+                    data-id="<?php echo $emp['id']; ?>"
+                    data-name="<?php echo $emp['name']; ?>"
+                    data-salary="<?php echo preg_replace('/[^0-9]/', '', $emp['salary']); ?>"
+                  >
+                    Adjust Salary
+                  </button>
                 </div>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
@@ -203,7 +212,15 @@ $employees = getEmployees();
                   <p class="font-bold text-gray-900"><?php echo $emp['salary']; ?></p>
                   <div class="mt-2"></div> 
                   <p class="text-gray-500">Performance Rating</p>
-                  <p class="<?php echo getRatingColor($emp['rating']); ?>"><?php echo $emp['rating']; ?></p>
+                  <p class="<?php echo getRatingColor($emp['rating']); ?>">
+                    <?php echo $emp['rating']; ?>
+                  </p>
+                  <button 
+                    class="openRatingModal text-blue-600 text-xs underline mt-1"
+                    data-id="<?php echo $emp['id']; ?>"
+                    data-name="<?php echo $emp['name']; ?>"
+                    data-rating="<?php echo $emp['rating']; ?>"
+                  >Edit</button>
                 </div>
                 <div>
                   <p class="text-gray-500">Last Increase</p>
@@ -228,142 +245,178 @@ $employees = getEmployees();
           <?php endforeach; ?>
         </div>
 
-     <!-- Salary Adjustment Modal -->
-<div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-  <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
-    <div class="flex justify-between items-center border-b pb-3">
-      <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
-      <button id="closeModal" class="text-gray-500 hover:text-gray-700">
-        <i data-lucide="x" class="w-6 h-6"></i>
-      </button>
-    </div>
-   <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
-  <input type="hidden" name="employeeId" id="modalEmployeeId">
-
-  <div>
-    <label>Employee Name</label>
-    <input type="text" name="employeeName" id="modalEmployeeName"
-           class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
-  </div>
-
-  <div>
-    <label>Current Salary</label>
-    <input type="text" name="currentSalary" id="modalCurrentSalary"
-           class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" required>
-  </div>
-
-  <div>
-    <label>New Salary</label>
-    <input type="number" name="newSalary" id="modalNewSalary"
-           class="w-full mt-1 px-3 py-2 border rounded-lg" required>
-  </div>
-
-  <div>
-    <label>Effective Date</label>
-    <input type="date" name="effectiveDate" id="modalEffectiveDate"
-           class="w-full mt-1 px-3 py-2 border rounded-lg" required>
-  </div>
-
-  <div class="flex justify-end mt-6 gap-2">
-    <button type="button" id="cancelModal"
-            class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">
-      Cancel
-    </button>
-    <button type="submit"
-            class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">
-      Save Adjustment
-    </button>
-  </div>
-</form>
-  </div>
-</div>
-
+        <!-- Salary Adjustment Modal -->
+        <div id="salaryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+          <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h2 class="text-xl font-bold text-gray-800">Salary Adjustment</h2>
+              <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                <i data-lucide="x" class="w-6 h-6"></i>
+              </button>
+            </div>
+            <form method="POST" action="save_salary.php" class="mt-4 space-y-4">
+              <input type="hidden" name="employeeId" id="modalEmployeeId">
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Employee Name</label>
+                <input type="text" id="modalEmployeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Current Salary</label>
+                <input type="text" id="modalCurrentSalary" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">New Salary</label>
+                <input type="text" name="newSalary" id="modalNewSalary" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-600">Effective Date</label>
+                <input type="date" name="effectiveDate" id="modalEffectiveDate" class="w-full mt-1 px-3 py-2 border rounded-lg" required>
+              </div>
+              <div class="flex justify-end mt-6 gap-2">
+                <button id="cancelModal" type="button" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">Cancel</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">Save Adjustment</button>
+              </div>
+            </form>
+          </div>
+        </div>
       </main>
     </div>
   </div>
-
   
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  const sidebar = document.getElementById("sidebar");
-  const sidebarTexts = document.querySelectorAll(".sidebar-text");
-  const logoExpanded = document.querySelector(".sidebar-logo-expanded");
-  const logoCollapsed = document.querySelector(".sidebar-logo-collapsed");
+  <!-- Rating Adjustment Modal -->
+  <div id="ratingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="text-xl font-bold text-gray-800">Edit Performance Rating</h2>
+        <button id="closeRatingModal" class="text-gray-500 hover:text-gray-700">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+      <form method="POST" action="save_rating.php" class="mt-4 space-y-4">
+        <input type="hidden" name="employeeId" id="ratingEmployeeId">
+        <div>
+          <label class="block text-sm font-medium text-gray-600">Employee Name</label>
+          <input type="text" id="ratingEmployeeName" class="w-full mt-1 px-3 py-2 border rounded-lg bg-gray-100" readonly>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600">Performance Rating</label>
+          <input type="number" name="newRating" id="ratingValue" class="w-full mt-1 px-3 py-2 border rounded-lg" step="0.1" min="1" max="5" required>
+        </div>
+        <div class="flex justify-end mt-6 gap-2">
+          <button type="button" id="cancelRatingModal" class="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-  sidebarToggle.addEventListener("click", function () {
-    sidebar.classList.toggle("w-64");
-    sidebar.classList.toggle("w-20");
-    if (sidebar.classList.contains("w-20")) {
-      sidebarTexts.forEach(el => el.classList.add("hidden"));
-      logoExpanded.classList.add("hidden");
-      logoCollapsed.classList.remove("hidden");
-    } else {
-      sidebarTexts.forEach(el => el.classList.remove("hidden"));
-      logoExpanded.classList.remove("hidden");
-      logoCollapsed.classList.add("hidden");
-    }
-    lucide.createIcons();
+  <!-- Scripts -->
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Rating modal
+    const ratingModal = document.getElementById("ratingModal");
+    const closeRatingModal = document.getElementById("closeRatingModal");
+    const cancelRatingModal = document.getElementById("cancelRatingModal");
+    const openRatingButtons = document.querySelectorAll(".openRatingModal");
+
+    const ratingEmployeeId = document.getElementById("ratingEmployeeId");
+    const ratingEmployeeName = document.getElementById("ratingEmployeeName");
+    const ratingValue = document.getElementById("ratingValue");
+
+    openRatingButtons.forEach(button => {
+      button.addEventListener("click", function () {
+        ratingEmployeeId.value = this.dataset.id || "";
+        ratingEmployeeName.value = this.dataset.name || "";
+        ratingValue.value = this.dataset.rating || "";
+        ratingModal.classList.remove("hidden");
+        ratingModal.classList.add("flex");
+      });
+    });
+
+    [closeRatingModal, cancelRatingModal].forEach(btn => {
+      btn.addEventListener("click", () => {
+        ratingModal.classList.add("hidden");
+        ratingModal.classList.remove("flex");
+      });
+    });
   });
-});
   </script>
+
   <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const modal = document.getElementById("salaryModal");
-  const closeModal = document.getElementById("closeModal");
-  const cancelModal = document.getElementById("cancelModal");
-  const openButtons = document.querySelectorAll(".openSalaryModal");
-
-  const employeeIdInput = document.getElementById("modalEmployeeId");
-  const employeeNameInput = document.getElementById("modalEmployeeName");
-  const currentSalaryInput = document.getElementById("modalCurrentSalary");
-  const newSalaryInput = document.getElementById("modalNewSalary");
-  const effectiveDateInput = document.getElementById("modalEffectiveDate");
-
-  // Open modal and fill data
-  openButtons.forEach(button => {
-    button.addEventListener("click", function () {
-      employeeIdInput.value = this.dataset.id || "";
-      employeeNameInput.value = this.dataset.name || "";
-      currentSalaryInput.value = this.dataset.salary ? "₱" + parseInt(this.dataset.salary).toLocaleString() : "";
-      newSalaryInput.value = "";
-      effectiveDateInput.value = "";
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    });
-  });
-
-  // Close modal
-  [closeModal, cancelModal].forEach(btn => {
-    btn.addEventListener("click", () => {
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    });
-  });
-});
-</script>
-<script>
+    // Salary modal
     document.addEventListener("DOMContentLoaded", function () {
-  const modal = document.getElementById("salaryModal");
-  const openMainButton = document.getElementById("openSalaryModalMain");
-  const employeeIdInput = document.getElementById("modalEmployeeId");
-  const employeeNameInput = document.getElementById("modalEmployeeName");
-  const currentSalaryInput = document.getElementById("modalCurrentSalary");
-  const newSalaryInput = document.getElementById("modalNewSalary");
-  const effectiveDateInput = document.getElementById("modalEffectiveDate");
+      const modal = document.getElementById("salaryModal");
+      const closeModal = document.getElementById("closeModal");
+      const cancelModal = document.getElementById("cancelModal");
+      const openButtons = document.querySelectorAll(".openSalaryModal");
 
-  if (openMainButton) {
-    openMainButton.addEventListener("click", function () {
-      employeeIdInput.value = "";
-      employeeNameInput.value = "";
-      currentSalaryInput.value = "";
-      newSalaryInput.value = "";
-      effectiveDateInput.value = "";
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
+      const employeeIdInput = document.getElementById("modalEmployeeId");
+      const employeeNameInput = document.getElementById("modalEmployeeName");
+      const currentSalaryInput = document.getElementById("modalCurrentSalary");
+      const newSalaryInput = document.getElementById("modalNewSalary");
+      const effectiveDateInput = document.getElementById("modalEffectiveDate");
+
+      openButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          employeeIdInput.value = this.dataset.id || "";
+          employeeNameInput.value = this.dataset.name || "";
+          currentSalaryInput.value = this.dataset.salary 
+            ? "₱" + parseInt(this.dataset.salary).toLocaleString() 
+            : "";
+          newSalaryInput.value = "";
+          effectiveDateInput.value = "";
+          modal.classList.remove("hidden");
+          modal.classList.add("flex");
+        });
+      });
+
+      [closeModal, cancelModal].forEach(btn => {
+        btn.addEventListener("click", () => {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+        });
+      });
+
+      // Format new salary input as user types (₱10,000 no decimals)
+      newSalaryInput.addEventListener("input", function () {
+        let value = this.value.replace(/\D/g, "");
+        if (value) {
+          this.value = "₱" + parseInt(value).toLocaleString();
+        } else {
+          this.value = "";
+        }
+      });
+
+      // Before submitting form, strip ₱ and commas
+      newSalaryInput.form.addEventListener("submit", function () {
+        newSalaryInput.value = newSalaryInput.value.replace(/[₱,\s]/g, "");
+      });
     });
-  }
-});
-</script>
+  </script>
+
+  <script>
+    // Main add salary button
+    document.addEventListener("DOMContentLoaded", function () {
+      const modal = document.getElementById("salaryModal");
+      const openMainButton = document.getElementById("openSalaryModalMain");
+      const employeeIdInput = document.getElementById("modalEmployeeId");
+      const employeeNameInput = document.getElementById("modalEmployeeName");
+      const currentSalaryInput = document.getElementById("modalCurrentSalary");
+      const newSalaryInput = document.getElementById("modalNewSalary");
+      const effectiveDateInput = document.getElementById("modalEffectiveDate");
+
+      if (openMainButton) {
+        openMainButton.addEventListener("click", function () {
+          employeeIdInput.value = "";
+          employeeNameInput.value = "";
+          currentSalaryInput.value = "";
+          newSalaryInput.value = "";
+          effectiveDateInput.value = "";
+          modal.classList.remove("hidden");
+          modal.classList.add("flex");
+        });
+      }
+    });
+  </script>
 </body>
 </html>

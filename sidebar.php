@@ -67,14 +67,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <i data-lucide="heart" class="w-5 h-5"></i>
         <span class="sidebar-text">Benefits</span>
       </a>
-      
-      <!-- New Leave/Incentives Tab -->
-      <a href="leave_incentives.php"
-         class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-700 
-         <?php echo ($currentPage == 'leave_incentives.php') ? 'bg-gray-700 text-white font-semibold' : 'text-gray-300'; ?>">
-        <i data-lucide="award" class="w-5 h-5"></i>
-        <span class="sidebar-text">Leave/Incentives</span>
-      </a>
+    
     </div>
 
   </nav>

@@ -8,7 +8,6 @@ if($_SERVER["REQUEST_METHOD"]=="POST" && isset($_POST['id'])){
     $phone      = $_POST['phone'];
     $department = $_POST['department'];
     $position   = $_POST['position'];
-    $salary     = $_POST['salary'];
     $status     = $_POST['status'];
 
     // Get old name for logging
@@ -17,9 +16,9 @@ if($_SERVER["REQUEST_METHOD"]=="POST" && isset($_POST['id'])){
     $oldName = $row['first_name'] . " " . $row['last_name'];
     $newName = $first_name . " " . $last_name;
 
-    $sql = "UPDATE employees SET first_name=?, last_name=?, email=?, phone=?, department=?, position=?, salary=?, status=? WHERE id=?";
+    $sql = "UPDATE employees SET first_name=?, last_name=?, email=?, phone=?, department=?, position=?, status=? WHERE id=?";   
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ssssssisi", $first_name, $last_name, $email, $phone, $department, $position, $salary, $status, $id);
+    $stmt->bind_param("sssssssi", $first_name, $last_name, $email, $phone, $department, $position, $status, $id);
     $stmt->execute();
 
     // Log activity

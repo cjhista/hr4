@@ -1,18 +1,16 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $id = $_POST['employeeId'];
-  $newSalary = $_POST['newSalary'];
-  $effectiveDate = $_POST['effectiveDate'];
+  $newRating = $_POST['newRating'];
 
   $conn = new mysqli("localhost:3307", "root", "", "hr4_db");
   if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
   }
 
-  // Next review is 1 year after effective date
-  $sql = "UPDATE employees SET salary=?, nextReview=DATE_ADD(?, INTERVAL 1 YEAR) WHERE id=?";
+  $sql = "UPDATE employees SET rating=? WHERE id=?";
   $stmt = $conn->prepare($sql);
-  $stmt->bind_param("dsi", $newSalary, $effectiveDate, $id);
+  $stmt->bind_param("di", $newRating, $id);
   $stmt->execute();
   $stmt->close();
   $conn->close();

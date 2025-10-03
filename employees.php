@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
               <option value="ACTIVE" <?php if($filter==='ACTIVE') echo 'selected'; ?>>Active</option>
               <option value="INACTIVE" <?php if($filter==='INACTIVE') echo 'selected'; ?>>Inactive</option>
             </select>
-            <button type="submit" class="bg-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-800">Apply</button>
+            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Apply</button>
           </form>
 
           <!-- Add Employee Button -->
@@ -346,19 +346,21 @@ function openModal(mode, id = null) {
                   </select>
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-4 mt-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Salary</label>
-                  <input type="number" name="salary" value="${emp.salary}" required class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1">
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Status</label>
-                  <select name="status" required class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1">
-                    <option value="ACTIVE" ${emp.status==='ACTIVE'?'selected':''}>Active</option>
-                    <option value="INACTIVE" ${emp.status==='INACTIVE'?'selected':''}>Inactive</option>
-                  </select>
-                </div>
-              </div>
+             <div class="grid grid-cols-2 gap-4 mt-3">
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Salary</label>
+    <input type="number" name="salary" value="${emp.salary}" readonly 
+           class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 bg-gray-100 cursor-not-allowed">
+  </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700">Status</label>
+    <select name="status" required class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1">
+      <option value="ACTIVE" ${emp.status==='ACTIVE'?'selected':''}>Active</option>
+      <option value="INACTIVE" ${emp.status==='INACTIVE'?'selected':''}>Inactive</option>
+    </select>
+  </div>
+</div>
+
               <div class="flex justify-end gap-2 mt-4">
                 <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-lg">Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-blue-900 text-white rounded-lg">Save Changes</button>
