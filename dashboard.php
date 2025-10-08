@@ -1,58 +1,140 @@
 <?php
 $pageTitle = "HR 4 Dashboard";
-$userName  = "User"; 
+$userName  = "User";
 
-// Database connection
 include 'db.php';
 
-// Fetch total employees
-$totalEmployees = 0;
-$result = $conn->query("SELECT COUNT(*) AS total FROM employees");
-if ($result && $row = $result->fetch_assoc()) {
-    $totalEmployees = $row['total'];
+// ✅ Handle Soft Delete
+if (isset($_GET['delete_id'])) {
+    $id = intval($_GET['delete_id']);
+    $conn->query("UPDATE employees SET is_deleted = 1 WHERE id = $id");
+    $conn->query("INSERT INTO activities (ref_id, text, status) VALUES ($id, 'Employee soft deleted (ID: $id)', 'warning')");
+    header("Location: dashboard.php");
+    exit;
 }
 
-// Example dynamic values (replace with DB queries later)
-$presentToday     = 0;  // Could fetch dynamically from attendance table
-$monthlyPayroll   = "₱145K";
-$avgPerformance   = "4.2/5";
-$benefitsEnrolled = 13;
-$pendingReviews   = 3;
+// ✅ Handle Restore
+if (isset($_GET['restore_id'])) {
+    $id = intval($_GET['restore_id']);
+    $conn->query("UPDATE employees SET is_deleted = 0 WHERE id = $id");
+    $conn->query("INSERT INTO activities (ref_id, text, status) VALUES ($id, 'Employee restored (ID: $id)', 'success')");
+    header("Location: dashboard.php");
+    exit;
+}
 
-// Fetch recent activities from DB (latest 10)
+// ✅ Handle Permanent Delete
+if (isset($_GET['permanent_delete_id'])) {
+    $id = intval($_GET['permanent_delete_id']);
+    $conn->query("DELETE FROM employees WHERE id = $id");
+    $conn->query("DELETE FROM activities WHERE ref_id = $id");
+    $conn->query("INSERT INTO activities (ref_id, text, status) VALUES ($id, 'Employee permanently deleted (ID: $id)', 'danger')");
+    header("Location: dashboard.php");
+    exit;
+}
+
+// ✅ Fetch totals
+$totalEmployees = $conn->query("SELECT COUNT(*) AS total FROM employees WHERE is_deleted = 0")->fetch_assoc()['total'] ?? 0;
+
+// ✅ Dashboard values
+$presentToday = $totalEmployees;
+$monthlyPayroll = "₱145K";
+$avgPerformance = "4.2/5";
+$benefitsEnrolled = 13;
+$pendingReviews = 3;
+
+// ✅ Department Chart
+$deptData = [];
+$resDept = $conn->query("SELECT department, COUNT(*) as count FROM employees WHERE is_deleted = 0 GROUP BY department");
+if ($resDept) while ($r = $resDept->fetch_assoc()) $deptData[] = ['label' => $r['department'], 'value' => $r['count']];
+$deptLabels = array_column($deptData, 'label');
+$deptValues = array_column($deptData, 'value');
+
+// ✅ Status Chart
+$statusData = ['Active' => 0, 'Inactive' => 0, 'Deleted' => 0];
+$resStatus = $conn->query("SELECT status, is_deleted, COUNT(*) as count FROM employees GROUP BY status, is_deleted");
+if ($resStatus) {
+    while ($r = $resStatus->fetch_assoc()) {
+        if ($r['is_deleted']) $statusData['Deleted'] += $r['count'];
+        else $statusData[$r['status'] === 'ACTIVE' ? 'Active' : 'Inactive'] += $r['count'];
+    }
+}
+
+// ✅ Recent Activities
 $recentActivities = [];
-$sql = "SELECT * FROM activities ORDER BY created_at DESC LIMIT 10";
-$result = $conn->query($sql);
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
+$resAct = $conn->query("SELECT * FROM activities ORDER BY created_at DESC LIMIT 15");
+if ($resAct) {
+    while ($r = $resAct->fetch_assoc()) {
         $recentActivities[] = [
-            'id' => $row['id'],
-            'icon' => ($row['status'] == 'warning') ? 'alert-triangle' : (($row['status'] == 'success') ? 'dollar-sign' : 'user-plus'),
-            'text' => $row['text'],
-            'time' => date('g:i A, M d', strtotime($row['created_at'])),
-            'status' => $row['status']
+            'icon' => ($r['status'] == 'warning') ? 'alert-triangle' :
+                      (($r['status'] == 'success') ? 'check-circle' :
+                      (($r['status'] == 'danger') ? 'trash-2' : 'info')),
+            'text' => $r['text'],
+            'time' => date('M d, Y g:i A', strtotime($r['created_at'])),
+            'status' => $r['status']
         ];
     }
 }
 
-// Quick actions
-$quickActions = ["Add New Employee", "Process Payroll", "Generate Reports", "Manage Benefits"];
+// ✅ Employees
+$employees = [];
+$resEmp = $conn->query("SELECT * FROM employees ORDER BY id DESC");
+if ($resEmp) while ($r = $resEmp->fetch_assoc()) $employees[] = $r;
+
+// ✅ Chart JSON
+$deptJson = json_encode(['labels' => $deptLabels, 'data' => $deptValues]);
+$statusJson = json_encode(['labels' => array_keys($statusData), 'data' => array_values($statusData)]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title><?php echo $pageTitle; ?></title>
+  <title><?= $pageTitle ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="icon" type="png" href="logo2.png" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" type="image/png" href="logo2.png" />
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", () => {
       lucide.createIcons();
+
+      const dept = <?= $deptJson ?>;
+      new Chart(document.getElementById('deptChart'), {
+        type: 'pie',
+        data: {
+          labels: dept.labels,
+          datasets: [{
+            data: dept.data,
+            backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      const status = <?= $statusJson ?>;
+      new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+          labels: status.labels,
+          datasets: [{
+            label: 'Count',
+            data: status.data,
+            backgroundColor: ['#10B981','#FBBF24','#EF4444']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
     });
   </script>
 </head>
-<body class="h-screen overflow-hidden">
+
+<body class="h-screen overflow-hidden bg-gray-50">
   <div class="flex h-full">
 
     <!-- Sidebar -->
@@ -61,197 +143,182 @@ $quickActions = ["Add New Employee", "Process Payroll", "Generate Reports", "Man
     <div class="flex-1 flex flex-col overflow-y-auto">
 
       <!-- Header -->
-      <div class="flex items-center justify-between border-b py-4 bg-white sticky top-0 z-50 px-6">
-        <div class="flex items-center gap-4">
-          <button id="sidebarToggle" class="text-gray-600 hover:text-gray-800 focus:outline-none">
-            <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
-          </button>
-          <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM</h1>
-        </div>
-        <h1 class="text-lg font-semibold text-gray-600">Hotel & Restaurant NAME</h1>
-      </div>
+<div class="flex items-center justify-between border-b py-4 bg-white sticky top-0 z-50 px-6">
+  <div class="flex items-center gap-4">
+    <button id="sidebarToggle" class="text-gray-600 hover:text-gray-800 focus:outline-none">
+      <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
+    </button>
+    <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM</h1>
+  </div>
+  <h1 class="text-lg font-semibold text-gray-600">Hotel & Restaurant NAME</h1>
+</div>
 
+<!-- ✅ Dashboard Overview Section -->
+<div class="px-6 py-4 bg-gray-50 border-b">
+  <h2 class="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
+  <p class="text-gray-500 text-sm">Welcome to your HR management system</p>
+</div>
+
+
+      <!-- Main -->
       <main class="p-6 space-y-4">
+        <!-- Dashboard Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <?php
+          $cards = [
+            ["Employees", $totalEmployees, "users", "blue"],
+            ["Present Today", $presentToday, "check-circle", "green"],
+            ["Monthly Payroll", $monthlyPayroll, "dollar-sign", "yellow"],
+            ["Performance", $avgPerformance, "bar-chart-2", "purple"],
+            ["Benefits Enrolled", $benefitsEnrolled, "heart", "pink"],
+            ["Pending Reviews", $pendingReviews, "clipboard-list", "indigo"]
+          ];
+          foreach ($cards as $c): ?>
+            <div class="bg-white rounded-xl shadow p-6 text-center">
+              <i data-lucide="<?= $c[2] ?>" class="w-8 h-8 mx-auto text-<?= $c[3] ?>-500"></i>
+              <h3 class="mt-2 text-sm font-medium text-gray-500"><?= $c[0] ?></h3>
+              <p class="mt-1 text-2xl font-bold text-gray-800"><?= $c[1] ?></p>
+            </div>
+          <?php endforeach; ?>
+        </div>
 
-        <div class="flex items-center justify-between border-b py-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
-            <p class="text-gray-500 text-sm">Welcome to your HR management system</p>
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <!-- Employees by Department -->
+          <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between">
+            <div class="w-1/2 space-y-2">
+              <h3 class="text-base font-semibold text-gray-800 mb-3">Employees by Department</h3>
+              <?php if (!empty($deptLabels)): ?>
+                <ul class="text-gray-700 text-sm space-y-1">
+                  <?php foreach ($deptLabels as $index => $label): ?>
+                    <li class="flex items-center gap-2">
+                      <span class="inline-block w-3 h-3 rounded-full" style="background-color: <?= ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6'][$index % 5] ?>;"></span>
+                      <?= htmlspecialchars($label) ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php else: ?>
+                <p class="text-gray-500 text-sm">No data available</p>
+              <?php endif; ?>
+            </div>
+            <div class="w-1/2 flex justify-center">
+              <div class="w-64 h-64">
+                <canvas id="deptChart"></canvas>
+              </div>
+            </div>
           </div>
 
-          <!-- User Dropdown -->
-          <div class="relative">
-            <button id="userDropdownToggle" class="flex items-center gap-2 px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">
-              <i data-lucide="user" class="w-5 h-5"></i>
-              <span><?php echo $userName; ?></span>
-            </button>
-            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile</a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Settings</a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
+          <!-- Employee Status -->
+          <div class="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+            <h3 class="text-base font-semibold text-gray-800 mb-4">Employee Status</h3>
+            <div class="w-full h-80">
+              <canvas id="statusChart"></canvas>
             </div>
           </div>
         </div>
 
-        <!-- Dashboard Cards -->
-        <div class="px-6 mt-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            
-            <!-- Total Employees -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Total Employees</h2>
-                <i data-lucide="users" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $totalEmployees; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +5.2% from last month
-              </p>
+        <!-- Employee List + Recent Activity -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <!-- Employee List -->
+          <div class="lg:col-span-2 bg-white rounded-xl shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Employee Recent List</h3>
+            <div class="overflow-x-auto">
+              <table class="table-auto w-full border-collapse border border-gray-200 text-sm">
+                <thead>
+                  <tr class="bg-gray-100 text-left text-gray-600">
+                    <th class="border p-2">ID</th>
+                    <th class="border p-2">Name</th>
+                    <th class="border p-2">Department</th>
+                    <th class="border p-2">Status</th>
+                    <th class="border p-2 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (empty($employees)): ?>
+                    <tr><td colspan="5" class="text-center py-3 text-gray-500">No employees found</td></tr>
+                  <?php else: foreach ($employees as $emp): ?>
+                    <tr class="hover:bg-gray-50">
+                      <td class="border p-2"><?= $emp['id'] ?></td>
+                      <td class="border p-2"><?= htmlspecialchars($emp['first_name'].' '.$emp['last_name']) ?></td>
+                      <td class="border p-2"><?= htmlspecialchars($emp['department'] ?? 'N/A') ?></td>
+                      <td class="border p-2">
+                        <?php if ($emp['is_deleted']): ?>
+                          <span class="text-red-600 font-semibold">Deleted</span>
+                        <?php else: ?>
+                          <?= $emp['status'] === 'ACTIVE'
+                            ? "<span class='text-green-600 font-semibold'>Active</span>"
+                            : "<span class='text-yellow-600 font-semibold'>Inactive</span>" ?>
+                        <?php endif; ?>
+                      </td>
+                      <td class="border p-2 text-center space-x-2">
+                        <?php if ($emp['is_deleted']): ?>
+                          <a href="?restore_id=<?= $emp['id'] ?>" class="text-green-500 hover:underline">Restore</a>
+                          <a href="?permanent_delete_id=<?= $emp['id'] ?>" class="text-red-600 hover:underline">Delete</a>
+                        <?php else: ?>
+                          <a href="?delete_id=<?= $emp['id'] ?>" class="text-red-500 hover:underline">Delete</a>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
+                  <?php endforeach; endif; ?>
+                </tbody>
+              </table>
             </div>
-
-            <!-- Present Today -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Present Today</h2>
-                <i data-lucide="calendar-check" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $presentToday; ?></div>
-              <p class="text-xs text-red-600 flex items-center gap-1">
-                <i data-lucide="arrow-down-right" class="h-4 w-4"></i> -2.1% from yesterday
-              </p>
-            </div>
-
-            <!-- Monthly Payroll -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Monthly Payroll</h2>
-                <i data-lucide="wallet" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $monthlyPayroll; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +3.8% from last month
-              </p>
-            </div>
-
-            <!-- Avg Performance -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Avg Performance</h2>
-                <i data-lucide="trending-up" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $avgPerformance; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +1.5% from last quarter
-              </p>
-            </div>
-
-            <!-- Benefits Enrolled -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Benefits Enrolled</h2>
-                <i data-lucide="heart" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $benefitsEnrolled; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +8.7% from last month
-              </p>
-            </div>
-
-            <!-- Pending Reviews -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Pending Reviews</h2>
-                <i data-lucide="alert-triangle" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $pendingReviews; ?></div>
-              <p class="text-xs text-gray-500 flex items-center gap-1">
-                <i data-lucide="minus" class="h-4 w-4"></i> Awaiting feedback
-              </p>
-            </div>
-
           </div>
 
-          <!-- Recent Activity & Quick Actions -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow p-6">
-              <h2 class="text-base font-semibold text-gray-800 mb-4">Recent Activity</h2>
-              <ul class="divide-y divide-gray-100">
-                <?php foreach ($recentActivities as $activity): ?>
-                  <li class="flex items-center justify-between px-3 py-3 hover:bg-gray-100 rounded-lg transition">
-                    <div class="flex items-center gap-3">
-                      <i data-lucide="<?php echo $activity['icon']; ?>" class="h-5 w-5 text-gray-500"></i>
-                      <div>
-                        <p class="text-gray-700"><?php echo $activity['text']; ?></p>
-                        <p class="text-xs text-gray-400"><?php echo $activity['time']; ?></p>
-                      </div>
+          <!-- Recent Activity -->
+          <div class="bg-white rounded-xl shadow p-6 flex flex-col">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h2>
+            <ul class="divide-y divide-gray-100 overflow-y-auto pr-2" style="max-height: 27rem;">
+              <?php if (empty($recentActivities)): ?>
+                <p class="text-gray-500 text-sm text-center">No recent activities</p>
+              <?php else: foreach ($recentActivities as $a): ?>
+                <li class="flex items-center justify-between px-3 py-3 hover:bg-gray-100 rounded-lg transition">
+                  <div class="flex items-center gap-3">
+                    <i data-lucide="<?= $a['icon'] ?>" class="h-5 w-5 text-gray-500"></i>
+                    <div>
+                      <p class="text-gray-700"><?= $a['text'] ?></p>
+                      <p class="text-xs text-gray-400"><?= $a['time'] ?></p>
                     </div>
-                    <?php if ($activity['status'] === "warning"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-yellow-200 text-yellow-800 font-medium">warning</span>
-                    <?php elseif ($activity['status'] === "success"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-green-200 text-green-800 font-medium">success</span>
-                    <?php elseif ($activity['status'] === "info"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-blue-200 text-blue-800 font-medium">info</span>
-                    <?php endif; ?>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl shadow p-4 max-h-72">
-              <h2 class="text-sm font-semibold text-gray-800 mb-3">Quick Actions</h2>
-              <ul class="divide-y divide-gray-100 text-sm">
-                <?php foreach ($quickActions as $action): ?>
-                  <li class="px-3 py-2 hover:bg-gray-100 rounded-lg transition cursor-pointer">
-                    <?php echo $action; ?>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            </div>
+                  </div>
+                  <span class="text-xs px-2 py-1 rounded-md font-medium 
+                    <?= $a['status'] == 'warning' ? 'bg-yellow-200 text-yellow-800' :
+                       ($a['status'] == 'success' ? 'bg-green-200 text-green-800' :
+                       ($a['status'] == 'danger' ? 'bg-red-200 text-red-800' : 'bg-blue-200 text-blue-800')) ?>">
+                    <?= ucfirst($a['status']) ?>
+                  </span>
+                </li>
+              <?php endforeach; endif; ?>
+            </ul>
           </div>
-
         </div>
       </main>
     </div>
   </div>
 
+  <!-- ✅ Sidebar Toggle Script (from employees.php) -->
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const sidebar = document.getElementById("sidebar");
-      const sidebarTexts = document.querySelectorAll(".sidebar-text");
-      const userDropdownToggle = document.getElementById("userDropdownToggle");
-      const userDropdown = document.getElementById("userDropdown");
-      const logoExpanded = document.querySelector(".sidebar-logo-expanded");
-      const logoCollapsed = document.querySelector(".sidebar-logo-collapsed");
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const expandedLogo = document.querySelector('.sidebar-logo-expanded');
+  const collapsedLogo = document.querySelector('.sidebar-logo-collapsed');
 
-      sidebarToggle.addEventListener("click", function () {
-        sidebar.classList.toggle("w-64");
-        sidebar.classList.toggle("w-20");
+  toggleBtn.addEventListener('click', () => {
+    const texts = document.querySelectorAll('.sidebar-text');
+    if (sidebar.classList.contains('w-64')) {
+      sidebar.classList.replace('w-64', 'w-20');
+      expandedLogo.classList.add('hidden');
+      collapsedLogo.classList.remove('hidden');
+      texts.forEach(t => t.classList.add('hidden'));
+    } else {
+      sidebar.classList.replace('w-20', 'w-64');
+      expandedLogo.classList.remove('hidden');
+      collapsedLogo.classList.add('hidden');
+      texts.forEach(t => t.classList.remove('hidden'));
+    }
+    lucide.createIcons();
+  });
 
-        if (sidebar.classList.contains("w-20")) {
-          sidebarTexts.forEach(el => el.classList.add("hidden"));
-          logoExpanded.classList.add("hidden");
-          logoCollapsed.classList.remove("hidden");
-        } else {
-          sidebarTexts.forEach(el => el.classList.remove("hidden"));
-          logoExpanded.classList.remove("hidden");
-          logoCollapsed.classList.add("hidden");
-        }
-        lucide.createIcons();
-      });
-
-      userDropdownToggle.addEventListener("click", function () {
-        userDropdown.classList.toggle("hidden");
-      });
-
-      document.addEventListener("click", function (event) {
-        if (!userDropdown.contains(event.target) && !userDropdownToggle.contains(event.target)) {
-          userDropdown.classList.add("hidden");
-        }
-      });
-    });
+  document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
   </script>
 </body>
 </html>

@@ -1,5 +1,4 @@
 <?php
-
 $currentPage = basename($_SERVER['PHP_SELF']); 
 ?>
 <aside id="sidebar" class="w-64 bg-gray-800 text-gray-200 flex flex-col transition-[width] duration-300 ease-in-out">
@@ -9,7 +8,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <img src="logo2.png" alt="Logo" class="h-12 sidebar-logo-collapsed hidden transition-opacity duration-300" />
   </div>
 
-  
+  <!-- Navigation -->
   <nav class="flex-1 px-3 py-6 space-y-6">
     
     <div>
@@ -38,6 +37,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <span class="sidebar-text">Attendance</span>
       </a>
     </div>
+
+    <!-- Compensation -->
     <div>
         <p class="sidebar-text text-xs font-semibold text-gray-400 px-3 mb-2 uppercase tracking-wide">Compensation And Planning</p>
           <a href="compensation.php"
@@ -47,7 +48,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <span class="sidebar-text">Compensation</span>
       </a>
     </div>
-    <!-- Finance -->
+
+    <!-- Payroll -->
     <div>
       <p class="sidebar-text text-xs font-semibold text-gray-400 px-3 mb-2 uppercase tracking-wide">Process Payroll</p>
       <a href="payroll.php"
@@ -67,7 +69,17 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <i data-lucide="heart" class="w-5 h-5"></i>
         <span class="sidebar-text">Benefits</span>
       </a>
+    </div>
+
+    <!-- Profile Settings -->
+    <div class="border-t border-gray-700 pt-4">
+      <p class="sidebar-text text-xs font-semibold text-gray-400 px-3 mb-2 uppercase tracking-wide">User</p>
     
+      <a href="login.php"
+         class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-700 text-red-400">
+        <i data-lucide="log-out" class="w-5 h-5"></i>
+        <span class="sidebar-text">Logout</span>
+      </a>
     </div>
 
   </nav>

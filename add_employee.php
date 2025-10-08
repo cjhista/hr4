@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_employee'])) {
         $actStmt->execute();
 
         // Redirect back to dashboard
-        header("Location: index.php");
+        header("Location: dashboard.php");
         exit;
     } else {
         echo "<script>alert('Error: " . $stmt->error . "'); window.history.back();</script>";

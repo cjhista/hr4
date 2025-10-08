@@ -1,257 +1,423 @@
 <?php
-$pageTitle = "HR 4 Dashboard";
-$userName  = "User"; 
+session_start();
+require "db.php";
 
-// Database connection
-include 'db.php';
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $username = trim($_POST["username"]);
+    $password = $_POST["password"];
 
-// Fetch total employees
-$totalEmployees = 0;
-$result = $conn->query("SELECT COUNT(*) AS total FROM employees");
-if ($result && $row = $result->fetch_assoc()) {
-    $totalEmployees = $row['total'];
-}
+    // Find user by username or email
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
+    $stmt->bind_param("ss", $username, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
-// Example dynamic values (replace with DB queries later)
-$presentToday     = 0;  // Could fetch dynamically from attendance table
-$monthlyPayroll   = "₱145K";
-$avgPerformance   = "4.2/5";
-$benefitsEnrolled = 13;
-$pendingReviews   = 3;
-
-// Fetch recent activities from DB (latest 10)
-$recentActivities = [];
-$sql = "SELECT * FROM activities ORDER BY created_at DESC LIMIT 10";
-$result = $conn->query($sql);
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $recentActivities[] = [
-            'id' => $row['id'],
-            'icon' => ($row['status'] == 'warning') ? 'alert-triangle' : (($row['status'] == 'success') ? 'dollar-sign' : 'user-plus'),
-            'text' => $row['text'],
-            'time' => date('g:i A, M d', strtotime($row['created_at'])),
-            'status' => $row['status']
-        ];
+    if ($user && password_verify($password, $user["password_hash"])) {
+        // Success
+        $_SESSION["logged_in"] = true;
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["role"] = $user["role"];
+        
+        header("Location: dashboard.php");
+        exit();
+    } else {
+        // Failed
+        $_SESSION["error"] = "Invalid username/email or password.";
+        header("Location: index.html");
+        exit();
     }
 }
-
-// Quick actions
-$quickActions = ["Add New Employee", "Process Payroll", "Generate Reports", "Manage Benefits"];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8">
-  <title><?php echo $pageTitle; ?></title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="icon" type="png" href="logo2.png" />
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      lucide.createIcons();
-    });
-  </script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ATIERA — Secure Login</title>
+<link rel="icon" href="logo2.png">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  /* ===== Theme tokens ===== */
+  :root{
+    --blue-600:#1b2f73; /* dark blue */
+    --blue-700:#15265e;
+    --blue-800:#0f1c49;
+    --blue-a:#2342a6;  /* focus accent */
+    --gold:#d4af37;    /* use as text accent only */
+    --ink:#0f172a;
+    --muted:#64748b;
+    --ring:0 0 0 3px rgba(35,66,166,.28);
+    --card-bg: rgba(255,255,255,.95);
+    --card-border: rgba(226,232,240,.9);
+    --wm-opa-light:.35;
+    --wm-opa-dark:.55;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#e5e7eb; --muted:#9ca3af; }
+  }
+
+  /* ===== Background (subtle, performant) ===== */
+  body{
+    min-height:100svh; margin:0; color:var(--ink);
+    background:
+      radial-gradient(70% 60% at 8% 10%, rgba(255,255,255,.18) 0, transparent 60%),
+      radial-gradient(40% 40% at 100% 0%, rgba(212,175,55,.08) 0, transparent 40%),
+      linear-gradient(140deg, rgba(15,28,73,1) 50%, rgba(255,255,255,1) 50%);
+  }
+  html.dark body{
+    background:
+      radial-gradient(70% 60% at 8% 10%, rgba(212,175,55,.08) 0, transparent 60%),
+      radial-gradient(40% 40% at 100% 0%, rgba(212,175,55,.12) 0, transparent 40%),
+      linear-gradient(140deg, rgba(7,12,38,1) 50%, rgba(11,21,56,1) 50%);
+    color:#e5e7eb;
+  }
+
+  /* ===== Watermark (always visible) ===== */
+  .bg-watermark{
+    position:fixed; inset:0; z-index:-1; display:grid; place-items:center; pointer-events:none;
+  }
+  .bg-watermark img{
+    width:min(820px,70vw); max-height:68vh; object-fit:contain;
+    opacity:var(--wm-opa-light);
+    filter:
+      drop-shadow(0 0 26px rgba(255,255,255,.40))
+      drop-shadow(0 14px 34px rgba(0,0,0,.25));
+    mix-blend-mode:normal;
+    transition:opacity .25s ease, filter .25s ease, transform .6s ease;
+    will-change: opacity, filter, transform;
+  }
+  html.dark .bg-watermark img{
+    opacity:var(--wm-opa-dark);
+    filter:
+      drop-shadow(0 0 34px rgba(255,255,255,.55))
+      drop-shadow(0 16px 40px rgba(0,0,0,.30));
+  }
+
+  /* Optional gentle entrance */
+  .reveal { opacity:0; transform:translateY(8px); animation:reveal .45s .05s both; }
+  @keyframes reveal { to { opacity:1; transform:none; } }
+
+  /* ===== Card ===== */
+  .card{
+    background:var(--card-bg);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border:1px solid var(--card-border);
+    border-radius:18px;
+    box-shadow:0 16px 48px rgba(2,6,23,.18);
+  }
+  html.dark .card{ background:rgba(17,24,39,.92); border-color:rgba(71,85,105,.55); box-shadow:0 16px 48px rgba(0,0,0,.5); }
+
+  /* ===== Inputs (floating labels, no yellow lines) ===== */
+  .field{ position:relative; }
+  .input{
+    width:100%; border:1px solid #e5e7eb; border-radius:12px; background:#fff;
+    padding:1rem 2.6rem 1rem .95rem; outline:none; color:#0f172a; transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  .input:focus{ border-color:var(--blue-a); box-shadow:var(--ring) }
+  html.dark .input{ background:#0b1220; border-color:#243041; color:#e5e7eb; }
+  .float-label{
+    position:absolute; left:.9rem; top:50%; transform:translateY(-50%); padding:0 .25rem; color:#94a3b8;
+    pointer-events:none; background:transparent; transition:all .15s ease;
+  }
+  .input:focus + .float-label,
+  .input:not(:placeholder-shown) + .float-label{
+    top:0; transform:translateY(-50%) scale(.92); color:var(--blue-a); background:#fff;
+  }
+  html.dark .input:focus + .float-label,
+  html.dark .input:not(:placeholder-shown) + .float-label{ background:#0b1220; }
+
+  /* right-side icon area */
+  .icon-right{ position:absolute; right:.6rem; top:50%; transform:translateY(-50%); color:#64748b; }
+  html.dark .icon-right{ color:#94a3b8; }
+
+  /* ===== Button ===== */
+  .btn{
+    width:100%; display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+    background:linear-gradient(180deg, var(--blue-600), var(--blue-800));
+    color:#fff; font-weight:800; border-radius:14px; padding:.95rem 1rem;
+    border:1px solid rgba(255,255,255,.06);
+    transition:transform .08s ease, filter .15s ease, box-shadow .2s ease;
+    box-shadow:0 8px 18px rgba(2,6,23,.18);
+  }
+  .btn:hover{ filter:saturate(1.08); box-shadow:0 12px 26px rgba(2,6,23,.26); }
+  .btn:active{ transform:translateY(1px) scale(.99); }
+  .btn[disabled]{ opacity:.85; cursor:not-allowed; }
+
+  /* ===== Alerts ===== */
+  .alert{ border-radius:12px; padding:.65rem .8rem; font-size:.9rem }
+  .alert-error{ border:1px solid #fecaca; background:#fef2f2; color:#b91c1c }
+  .alert-info{ border:1px solid #c7d2fe; background:#eef2ff; color:#3730a3 }
+  html.dark .alert-error{ background:#3f1b1b; border-color:#7f1d1d; color:#fecaca }
+  html.dark .alert-info{ background:#1e1b4b; border-color:#3730a3; color:#c7d2fe }
+
+  .text-gold{ color:var(--gold) }
+
+  /* ===== Small utility for tiny caption spacing on mobile ===== */
+  .caption{ letter-spacing:.2px }
+</style>
 </head>
-<body class="h-screen overflow-hidden">
-  <div class="flex h-full">
 
-    <!-- Sidebar -->
-    <?php include 'sidebar.php'; ?>
+<body class="grid md:grid-cols-2 gap-0 place-items-center p-6 md:p-10">
 
-    <div class="flex-1 flex flex-col overflow-y-auto">
-
-      <!-- Header -->
-      <div class="flex items-center justify-between border-b py-4 bg-white sticky top-0 z-50 px-6">
-        <div class="flex items-center gap-4">
-          <button id="sidebarToggle" class="text-gray-600 hover:text-gray-800 focus:outline-none">
-            <i id="toggleIcon" data-lucide="menu" class="w-6 h-6"></i>
-          </button>
-          <h1 class="text-lg font-bold text-gray-800">HR 4 MANAGEMENT SYSTEM</h1>
-        </div>
-        <h1 class="text-lg font-semibold text-gray-600">Hotel & Restaurant NAME</h1>
-      </div>
-
-      <main class="p-6 space-y-4">
-
-        <div class="flex items-center justify-between border-b py-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
-            <p class="text-gray-500 text-sm">Welcome to your HR management system</p>
-          </div>
-
-          <!-- User Dropdown -->
-          <div class="relative">
-            <button id="userDropdownToggle" class="flex items-center gap-2 px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">
-              <i data-lucide="user" class="w-5 h-5"></i>
-              <span><?php echo $userName; ?></span>
-            </button>
-            <div id="userDropdown" class="hidden absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile</a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Settings</a>
-              <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Logout</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Dashboard Cards -->
-        <div class="px-6 mt-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            
-            <!-- Total Employees -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Total Employees</h2>
-                <i data-lucide="users" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $totalEmployees; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +5.2% from last month
-              </p>
-            </div>
-
-            <!-- Present Today -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Present Today</h2>
-                <i data-lucide="calendar-check" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $presentToday; ?></div>
-              <p class="text-xs text-red-600 flex items-center gap-1">
-                <i data-lucide="arrow-down-right" class="h-4 w-4"></i> -2.1% from yesterday
-              </p>
-            </div>
-
-            <!-- Monthly Payroll -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Monthly Payroll</h2>
-                <i data-lucide="wallet" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $monthlyPayroll; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +3.8% from last month
-              </p>
-            </div>
-
-            <!-- Avg Performance -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Avg Performance</h2>
-                <i data-lucide="trending-up" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $avgPerformance; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +1.5% from last quarter
-              </p>
-            </div>
-
-            <!-- Benefits Enrolled -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Benefits Enrolled</h2>
-                <i data-lucide="heart" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $benefitsEnrolled; ?></div>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <i data-lucide="arrow-up-right" class="h-4 w-4"></i> +8.7% from last month
-              </p>
-            </div>
-
-            <!-- Pending Reviews -->
-            <div class="shadow hover:shadow-lg transition-shadow duration-200 bg-white rounded-2xl p-6">
-              <div class="flex items-center justify-between pb-2">
-                <h2 class="text-sm font-medium text-gray-500">Pending Reviews</h2>
-                <i data-lucide="alert-triangle" class="h-5 w-5 text-gray-500"></i>
-              </div>
-              <div class="text-2xl font-bold text-gray-900 mb-1"><?php echo $pendingReviews; ?></div>
-              <p class="text-xs text-gray-500 flex items-center gap-1">
-                <i data-lucide="minus" class="h-4 w-4"></i> Awaiting feedback
-              </p>
-            </div>
-
-          </div>
-
-          <!-- Recent Activity & Quick Actions -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <!-- Recent Activity -->
-            <div class="bg-white rounded-xl shadow p-6">
-              <h2 class="text-base font-semibold text-gray-800 mb-4">Recent Activity</h2>
-              <ul class="divide-y divide-gray-100">
-                <?php foreach ($recentActivities as $activity): ?>
-                  <li class="flex items-center justify-between px-3 py-3 hover:bg-gray-100 rounded-lg transition">
-                    <div class="flex items-center gap-3">
-                      <i data-lucide="<?php echo $activity['icon']; ?>" class="h-5 w-5 text-gray-500"></i>
-                      <div>
-                        <p class="text-gray-700"><?php echo $activity['text']; ?></p>
-                        <p class="text-xs text-gray-400"><?php echo $activity['time']; ?></p>
-                      </div>
-                    </div>
-                    <?php if ($activity['status'] === "warning"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-yellow-200 text-yellow-800 font-medium">warning</span>
-                    <?php elseif ($activity['status'] === "success"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-green-200 text-green-800 font-medium">success</span>
-                    <?php elseif ($activity['status'] === "info"): ?>
-                      <span class="text-xs px-2 py-1 rounded-md bg-blue-200 text-blue-800 font-medium">info</span>
-                    <?php endif; ?>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl shadow p-4 max-h-72">
-              <h2 class="text-sm font-semibold text-gray-800 mb-3">Quick Actions</h2>
-              <ul class="divide-y divide-gray-100 text-sm">
-                <?php foreach ($quickActions as $action): ?>
-                  <li class="px-3 py-2 hover:bg-gray-100 rounded-lg transition cursor-pointer">
-                    <?php echo $action; ?>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            </div>
-          </div>
-
-        </div>
-      </main>
-    </div>
+  <!-- Watermark -->
+  <div class="bg-watermark" aria-hidden="true">
+    <img src="logo.png" alt="ATIERA watermark" id="wm">
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const sidebar = document.getElementById("sidebar");
-      const sidebarTexts = document.querySelectorAll(".sidebar-text");
-      const userDropdownToggle = document.getElementById("userDropdownToggle");
-      const userDropdown = document.getElementById("userDropdown");
-      const logoExpanded = document.querySelector(".sidebar-logo-expanded");
-      const logoCollapsed = document.querySelector(".sidebar-logo-collapsed");
+  <!-- Left panel -->
+  <section class="hidden md:flex w-full h-full items-center justify-center">
+    <div class="max-w-lg text-white px-6 reveal">
+      <img src="logo.png" alt="ATIERA" class="w-56 mb-6 drop-shadow-xl select-none" draggable="false">
+      <h1 class="text-4xl font-extrabold leading-tight tracking-tight">
+        ATIERA <span class="text-gold">Payroll</span> Management
+      </h1>
+      <!-- Removed the yellow/gold divider line per request -->
+      <p class="mt-4 text-white/90 text-lg">Secure • Fast • Intuitive</p>
+    </div>
+  </section>
 
-      sidebarToggle.addEventListener("click", function () {
-        sidebar.classList.toggle("w-64");
-        sidebar.classList.toggle("w-20");
+  <!-- Right: Login -->
+  <main class="w-full max-w-md md:ml-auto">
+    <div id="card" class="card p-6 sm:p-8 reveal">
+      <!-- Header row -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="md:hidden flex items-center gap-3">
+          <img src="logo.png" alt="ATIERA" class="h-10 w-auto">
+          <div>
+            <div class="text-sm font-semibold leading-4">ATIERA Finance Suite</div>
+            <div class="text-[10px] text-[color:var(--muted)] caption">Blue • White • <span class="text-gold font-medium">Gold</span></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 ml-auto">
+          <!-- Dark mode toggle -->
+          <button id="modeBtn" class="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-white/60 dark:hover:bg-slate-800" aria-pressed="false" title="Toggle dark mode">🌓</button>
+        </div>
+      </div>
 
-        if (sidebar.classList.contains("w-20")) {
-          sidebarTexts.forEach(el => el.classList.add("hidden"));
-          logoExpanded.classList.add("hidden");
-          logoCollapsed.classList.remove("hidden");
-        } else {
-          sidebarTexts.forEach(el => el.classList.remove("hidden"));
-          logoExpanded.classList.remove("hidden");
-          logoCollapsed.classList.add("hidden");
-        }
-        lucide.createIcons();
-      });
+      <h3 class="text-lg sm:text-xl font-semibold mb-1">Sign in</h3>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Use your administrator credentials to continue.</p>
 
-      userDropdownToggle.addEventListener("click", function () {
-        userDropdown.classList.toggle("hidden");
-      });
+      <!-- Alerts -->
+      <div id="alert" class="alert alert-error hidden mb-3" role="alert"></div>
+      <div id="info"  class="alert alert-info hidden mb-3" role="status"></div>
 
-      document.addEventListener("click", function (event) {
-        if (!userDropdown.contains(event.target) && !userDropdownToggle.contains(event.target)) {
-          userDropdown.classList.add("hidden");
-        }
-      });
-    });
-  </script>
+      <form id="loginForm" class="space-y-4" novalidate>
+        <!-- Username -->
+        <div class="field">
+          <input id="username" name="username" type="text" autocomplete="username" class="input peer" placeholder=" " required aria-describedby="userHelp">
+          <label for="username" class="float-label">Username or Email</label>
+          <!-- underline removed -->
+          <span class="icon-right" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 5v1h16v-1c0-2.33-2.67-5-8-5Z" fill="currentColor"/></svg>
+          </span>
+          <p id="userHelp" class="mt-1 text-xs text-slate-500 dark:text-slate-400">e.g., <span class="font-mono">admin</span> or <span class="font-mono">admin@example.com</span></p>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+            <span id="capsNote" class="hidden text-xs px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-amber-800 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200">Caps Lock is ON</span>
+          </div>
+          <div class="field">
+            <input id="password" name="password" type="password" autocomplete="current-password" class="input pr-12 peer" placeholder=" " required>
+            <label for="password" class="float-label">••••••••</label>
+            <!-- underline removed -->
+            <div class="icon-right flex items-center gap-1">
+              <button type="button" id="togglePw" class="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center" aria-label="Show password" aria-pressed="false" title="Show/Hide password">
+                <svg id="eyeOn" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 11a4 4 0 1 1 4-4 4 4 0 0 1-4 4Z" fill="currentColor"/></svg>
+                <svg id="eyeOff" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 4.27 4.28 3 21 19.72 19.73 21l-2.2-2.2A11.73 11.73 0 0 1 12 19c-5 0-9.27-3.11-11-7a12.71 12.71 0 0 1 4.1-4.73L3 4.27ZM12 7a5 5 0 0 1 5 5 5 5 0 0 1-.46 2.11L14.6 12.17A2.5 2.5 0 0 0 11.83 9.4L9.9 7.46A4.84 4.84 0 0 1 12 7Z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Strength meter (neutral color, not gold) -->
+          <div class="mt-2 flex items-center gap-2">
+            <div class="h-1.5 flex-1 rounded bg-slate-200 dark:bg-slate-700 overflow-hidden" aria-hidden="true">
+              <div id="pwBar" class="h-full w-1/12 bg-blue-600 dark:bg-blue-500"></div>
+            </div>
+            <span id="pwLabel" class="text-xs text-slate-500 dark:text-slate-400 w-14 text-right">weak</span>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button id="submitBtn" type="submit" class="btn" aria-live="polite">
+          <span id="btnIcon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-2V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 0 1 6 0v3Z" fill="#fff"/></svg>
+          </span>
+          <span id="btnText">Sign In</span>
+        </button>
+
+        <p class="text-xs text-center text-slate-500 dark:text-slate-400">© 2025 ATIERA BSIT 4101 CLUSTER 1</p>
+      </form>
+    </div>
+  </main>
+
+<script>
+  const $ = (s, r=document)=>r.querySelector(s);
+
+  // Elements
+  const form      = $('#loginForm');
+  const userEl    = $('#username');
+  const pwEl      = $('#password');
+  const toggle    = $('#togglePw');
+  const eyeOn     = $('#eyeOn');
+  const eyeOff    = $('#eyeOff');
+  const alertBox  = $('#alert');
+  const infoBox   = $('#info');
+  const submitBtn = $('#submitBtn');
+  const btnText   = $('#btnText');
+  const capsNote  = $('#capsNote');
+  const pwBar     = $('#pwBar');
+  const pwLabel   = $('#pwLabel');
+  const modeBtn   = $('#modeBtn');
+  const wmImg     = $('#wm');
+
+  /* ---------- Dark mode toggle: keep watermark clearly visible ---------- */
+  modeBtn.addEventListener('click', ()=>{
+    const root = document.documentElement;
+    const dark = root.classList.toggle('dark');
+    modeBtn.setAttribute('aria-pressed', String(dark));
+    // Nudge watermark for a tiny parallax pop
+    wmImg.style.transform = 'scale(1.01)';
+    setTimeout(()=> wmImg.style.transform = '', 220);
+  });
+
+  /* ---------- Small helpers ---------- */
+  const showError = (msg)=>{ alertBox.textContent = msg; alertBox.classList.remove('hidden'); };
+  const hideError = ()=> alertBox.classList.add('hidden');
+  const showInfo  = (msg)=>{ infoBox.textContent = msg; infoBox.classList.remove('hidden'); };
+  const hideInfo  = ()=> infoBox.classList.add('hidden');
+
+  // Caps Lock chip
+  function caps(e){
+    const on = e.getModifierState && e.getModifierState('CapsLock');
+    if (capsNote) capsNote.classList.toggle('hidden', !on);
+  }
+  pwEl.addEventListener('keyup', caps);
+  pwEl.addEventListener('keydown', caps);
+
+  // Password meter (neutral blue)
+  pwEl.addEventListener('input', () => {
+    const v = pwEl.value;
+    let score = 0;
+    if (v.length >= 6) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    const widths = ['12%','38%','64%','88%','100%'];
+    const labels = ['weak','fair','okay','good','strong'];
+    pwBar.style.width = widths[score];
+    pwLabel.textContent = labels[score];
+  });
+
+  // Show/Hide password
+  toggle.addEventListener('click', () => {
+    const show = pwEl.type === 'password';
+    pwEl.type = show ? 'text' : 'password';
+    toggle.setAttribute('aria-pressed', String(show));
+    toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    eyeOn.classList.toggle('hidden', show);
+    eyeOff.classList.toggle('hidden', !show);
+    pwEl.focus();
+  });
+
+  // Optional logout info via ?logout=1
+  (function handleLogout(){
+    const q = new URLSearchParams(location.search);
+    if (q.get('logout') === '1') {
+      sessionStorage.removeItem('atiera_logged_in');
+      showInfo('You have been logged out.');
+    }
+  })();
+
+  /* ---------- Auth + lockout with LIVE countdown ---------- */
+  const MAX_TRIES = 5, LOCK_MS = 60_000;
+  const triesKey = 'atiera_login_tries';
+  const lockKey  = 'atiera_login_lock';
+  let   lockTimer = null;
+
+  const num = key => Number(localStorage.getItem(key) || '0');
+  const setNum = (key,val) => localStorage.setItem(key, String(val));
+
+  function mmss(ms){
+    const s = Math.max(0, Math.ceil(ms/1000));
+    const m = Math.floor(s/60);
+    const r = s % 60;
+    return (m? `${m}:${String(r).padStart(2,'0')}` : `${r}s`);
+  }
+
+  function startLockCountdown(until){
+    clearInterval(lockTimer);
+    submitBtn.disabled = true;
+    const tick = () => {
+      const left = until - Date.now();
+      if (left <= 0){
+        clearInterval(lockTimer);
+        localStorage.removeItem(lockKey);
+        setNum(triesKey, 0);
+        submitBtn.disabled = false;
+        btnText.textContent = 'Sign In';
+        hideError();
+        return;
+      }
+      btnText.textContent = `Locked ${mmss(left)}`;
+      showError(`Too many attempts. Try again in ${mmss(left)}.`);
+    };
+    tick();
+    lockTimer = setInterval(tick, 250); // smooth countdown
+  }
+
+  function checkLock(){
+    const until = Number(localStorage.getItem(lockKey) || '0');
+    if (until > Date.now()) { startLockCountdown(until); return true; }
+    return false;
+  }
+
+  function startLoading(){ submitBtn.disabled = true; btnText.textContent = 'Checking…'; }
+  function stopLoading(ok=false){
+    if (ok){ btnText.textContent = 'Success'; }
+    else { btnText.textContent = 'Sign In'; submitBtn.disabled = false; }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    hideError(); hideInfo();
+    if (checkLock()) return;
+
+    const u = userEl.value.trim().toLowerCase();
+    const p = pwEl.value;
+    if (!u || !p) { showError('Please enter username/email and password.'); return; }
+
+    startLoading();
+
+    setTimeout(() => {
+      const ok = ((u === 'admin' || u === 'admin@example.com') && p === '123');
+
+      if (ok) {
+        sessionStorage.setItem('atiera_logged_in','1');
+        stopLoading(true);
+        window.location.href = 'dashboard.php';
+        return;
+      }
+
+      const tries = num(triesKey) + 1; setNum(triesKey, tries);
+      if (tries >= MAX_TRIES) {
+        const until = Date.now() + LOCK_MS;
+        localStorage.setItem(lockKey, String(until));
+        startLockCountdown(until);
+      } else {
+        stopLoading(false);
+        showError(`Invalid credentials. Attempt ${tries}/${MAX_TRIES}.`);
+        pwEl.focus(); pwEl.select();
+      }
+    }, 220);
+  });
+
+  // Resume countdown if locked
+  checkLock();
+</script>
+
 </body>
 </html>

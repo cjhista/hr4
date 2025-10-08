@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION["user_id"] = $user["id"];
         $_SESSION["role"] = $user["role"];
         
-        header("Location: index.php");
+        header("Location: dashboard.php");
         exit();
     } else {
         // Failed
@@ -398,7 +398,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       if (ok) {
         sessionStorage.setItem('atiera_logged_in','1');
         stopLoading(true);
-        window.location.href = 'index.php';
+        window.location.href = 'dashboard.php';
         return;
       }
 
