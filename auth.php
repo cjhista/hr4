@@ -2,36 +2,36 @@
 session_start();
 require "db.php";
 
-// ✅ Basahin JSON body
-$data = json_decode(file_get_contents("php://input"), true);
+// Ensure JSON input
+$input = json_decode(file_get_contents("php://input"), true);
+$username = trim($input["username"] ?? "");
+$password = $input["password"] ?? "";
 
-$username = trim($data['username'] ?? '');
-$password = $data['password'] ?? '';
+$response = ["success" => false, "message" => "Invalid request."];
 
-if (!$username || !$password) {
-    echo json_encode(["success" => false, "message" => "Missing username or password."]);
-    exit;
-}
+if ($username && $password) {
+    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
+    $stmt->bind_param("ss", $username, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
-// ✅ Hanapin user by username or email
-$stmt = $conn->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
-$stmt->bind_param("ss", $username, $username);
-$stmt->execute();
-$res = $stmt->get_result();
+    if ($user) {
+        // ⚠️ TEMPORARY: Plain text password check (for testing only)
+        if ($password === $user["password"]) {
+            $_SESSION["user_id"] = $user["id"];
+            $_SESSION["username"] = $user["username"];
+            $_SESSION["role"] = $user["role"];
 
-if ($res && $user = $res->fetch_assoc()) {
-    // ✅ Verify password
-    if (password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
-        echo json_encode(["success" => true]);
-        exit;
+            $response = ["success" => true];
+        } else {
+            $response = ["success" => false, "message" => "Incorrect password."];
+        }
     } else {
-        echo json_encode(["success" => false, "message" => "Incorrect password."]);
-        exit;
+        $response = ["success" => false, "message" => "User not found."];
     }
-} else {
-    echo json_encode(["success" => false, "message" => "User not found."]);
-    exit;
 }
+
+header("Content-Type: application/json");
+echo json_encode($response);
+exit;
