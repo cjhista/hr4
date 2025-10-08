@@ -1,32 +1,8 @@
 <?php
 session_start();
-require "db.php";
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $username = trim($_POST["username"]);
-    $password = $_POST["password"];
-
-    // Find user by username or email
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1");
-    $stmt->bind_param("ss", $username, $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-
-    if ($user && password_verify($password, $user["password_hash"])) {
-        // Success
-        $_SESSION["logged_in"] = true;
-        $_SESSION["user_id"] = $user["id"];
-        $_SESSION["role"] = $user["role"];
-        
-        header("Location: dashboard.php");
-        exit();
-    } else {
-        // Failed
-        $_SESSION["error"] = "Invalid username/email or password.";
-        header("Location: index.html");
-        exit();
-    }
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -173,7 +149,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <h1 class="text-4xl font-extrabold leading-tight tracking-tight">
         ATIERA <span class="text-gold">Payroll</span> Management
       </h1>
-      <!-- Removed the yellow/gold divider line per request -->
       <p class="mt-4 text-white/90 text-lg">Secure • Fast • Intuitive</p>
     </div>
   </section>
@@ -332,7 +307,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
   })();
 
-  /* ---------- Auth + lockout with LIVE countdown ---------- */
+  /* ---------- Auth + lockout with LIVE countdown (client-side lock) ---------- */
   const MAX_TRIES = 5, LOCK_MS = 60_000;
   const triesKey = 'atiera_login_tries';
   const lockKey  = 'atiera_login_lock';
@@ -381,27 +356,37 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     else { btnText.textContent = 'Sign In'; submitBtn.disabled = false; }
   }
 
-  form.addEventListener('submit', (e) => {
+  // Submit handler — send credentials to auth.php (expects JSON { success: bool, message?: string })
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     hideError(); hideInfo();
     if (checkLock()) return;
 
-    const u = userEl.value.trim().toLowerCase();
+    const u = userEl.value.trim();
     const p = pwEl.value;
     if (!u || !p) { showError('Please enter username/email and password.'); return; }
 
     startLoading();
 
-    setTimeout(() => {
-      const ok = ((u === 'admin' || u === 'admin@example.com') && p === '123');
+    try {
+      const res = await fetch('auth.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      if (!res.ok) throw new Error('network');
+      const data = await res.json();
 
-      if (ok) {
+      if (data.success) {
+        // successful -> server started session
         sessionStorage.setItem('atiera_logged_in','1');
         stopLoading(true);
-        window.location.href = 'dashboard.php';
+        // small delay so "Success" is visible briefly
+        setTimeout(()=> window.location.href = 'dashboard.php', 250);
         return;
       }
 
+      // failure -> increase tries (client-side lock)
       const tries = num(triesKey) + 1; setNum(triesKey, tries);
       if (tries >= MAX_TRIES) {
         const until = Date.now() + LOCK_MS;
@@ -409,13 +394,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         startLockCountdown(until);
       } else {
         stopLoading(false);
-        showError(`Invalid credentials. Attempt ${tries}/${MAX_TRIES}.`);
+        const msg = data.message || 'Invalid credentials.';
+        showError(`${msg} Attempt ${tries}/${MAX_TRIES}.`);
         pwEl.focus(); pwEl.select();
       }
-    }, 220);
+
+    } catch (err) {
+      stopLoading(false);
+      console.error(err);
+      showError("Server error, please try again.");
+    }
   });
 
-  // Resume countdown if locked
+  // Resume countdown if locked on page load
   checkLock();
 </script>
 
