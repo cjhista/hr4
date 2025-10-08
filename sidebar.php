@@ -11,6 +11,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   <!-- Navigation -->
   <nav class="flex-1 px-3 py-6 space-y-6">
     
+    <!-- HR Analytics -->
     <div>
       <p class="sidebar-text text-xs font-semibold text-gray-400 px-3 mb-2 uppercase tracking-wide">HR Analytics</p>
       <a href="dashboard.php"
@@ -71,12 +72,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       </a>
     </div>
 
-    <!-- Profile Settings / Logout -->
+    <!-- Profile Settings -->
     <div class="border-t border-gray-700 pt-4">
       <p class="sidebar-text text-xs font-semibold text-gray-400 px-3 mb-2 uppercase tracking-wide">User</p>
-    
+
+      <!-- Clickable Profile Settings -->
+      <a href="profile.php"
+        class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-700 
+        <?php echo ($currentPage == 'profile.php') ? 'bg-gray-700 text-white font-semibold' : 'text-gray-300'; ?>">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+        <span class="sidebar-text">Profile Settings</span>
+      </a>
+
+      <!-- Logout -->
       <a href="logout.php"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-700 text-red-400">
+        class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-700 text-red-400 mt-2">
         <i data-lucide="log-out" class="w-5 h-5"></i>
         <span class="sidebar-text">Logout</span>
       </a>

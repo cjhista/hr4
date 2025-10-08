@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 <div class="flex items-center gap-4">
 <div class="text-sm text-gray-600">Hello, <strong><?= $userName ?></strong></div>
-<a href="logout.php" class="text-sm text-red-600 hover:underline">Sign out</a>
+
 </div>
 </div>
 
