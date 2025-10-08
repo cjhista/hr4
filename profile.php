@@ -89,10 +89,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Profile Settings</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.244.0/dist/lucide.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex">
-
 <?php include "sidebar.php"; ?>
 
 <main class="flex-1 p-8">
@@ -134,9 +132,5 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </form>
 </section>
 </main>
-
-<script>
-lucide.replace();
-</script>
 </body>
 </html>
