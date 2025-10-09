@@ -2,7 +2,7 @@
 // db.php - Database Connection File
 // Baguhin ang values ayon sa cPanel MySQL credentials mo
 
-$host = "localhost";             // Kadalasan "localhost" lang sa cPanel
+$host = "localhost:3307";             // Kadalasan "localhost" lang sa cPanel
 $user = "cpanel_mysql_user";     // Halimbawa: "mycpanel_hr4user"
 $pass = "your_mysql_password";   // Yung password na nilagay mo nung nag create ng DB user
 $db   = "cpanelprefix_hr4_db";   // Halimbawa: "mycpanel_hr4_db"
