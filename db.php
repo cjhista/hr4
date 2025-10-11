@@ -1,19 +1,12 @@
 <?php
-// db.php - Database Connection File
-// UPDATE these values for your environment (localhost vs live)
-$host = "localhost:3307";   // or e.g. "127.0.0.1" or "db-server.example.com"
-$user = "root";
-$pass = "";
-$db   = "hr4_db";
+$host = "localhost";
+$user = "your_live_db_user";
+$pass = "your_live_db_password";
+$db   = "your_live_db_name";
 
-// Create connection
 $conn = new mysqli($host, $user, $pass, $db);
-
-// Check connection
 if ($conn->connect_error) {
-    // In production you might not want to echo this — we return JSON from endpoints instead.
-    error_log("DB connection failed: " . $conn->connect_error);
-    // For scripts that expect mysqli $conn, fail early:
-    die("Database connection failed.");
+    die("Connection failed: " . $conn->connect_error);
 }
+echo "✅ Connected successfully!";
 ?>
