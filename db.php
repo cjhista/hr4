@@ -5,7 +5,7 @@
 $host = "localhost";
 $user = "cpanelusername_dbuser";
 $pass = "db_password";
-$db   = "cpanelusername_hr4_db";
+$db   = "hr4_db";
 
 // Create connection
 $conn = new mysqli($host, $user, $pass, $db);
