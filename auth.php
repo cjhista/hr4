@@ -1,5 +1,10 @@
 <?php
 // auth.php - JSON login endpoint
+// Debugging: set to 0 in production
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+
 session_start();
 require_once "db.php";
 
@@ -12,7 +17,7 @@ function looks_like_hash($s) {
             || strpos($s, '$argon2i$') === 0 || strpos($s, '$argon2id$') === 0);
 }
 
-// Only allow POST
+// Only POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
@@ -23,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
 
+// Basic input check
 $username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
 
@@ -31,7 +37,14 @@ if ($username === '' || $password === '') {
     exit;
 }
 
-// Query user
+// DB connection sanity check
+if (!isset($conn) || !$conn) {
+    error_log("auth.php: Missing DB connection.");
+    echo json_encode(['success' => false, 'message' => 'Server configuration error.']);
+    exit;
+}
+
+// Prepare query
 $stmt = $conn->prepare("SELECT id, username, email, password, role FROM users WHERE username = ? OR email = ? LIMIT 1");
 if (!$stmt) {
     error_log("auth.php prepare failed: " . $conn->error);
@@ -39,7 +52,11 @@ if (!$stmt) {
     exit;
 }
 $stmt->bind_param('ss', $username, $username);
-$stmt->execute();
+if (!$stmt->execute()) {
+    error_log("auth.php execute failed: " . $stmt->error);
+    echo json_encode(['success' => false, 'message' => 'Database execution error.']);
+    exit;
+}
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
@@ -51,20 +68,22 @@ if (!$user) {
 
 $dbPass = (string)($user['password'] ?? '');
 
-// Case 1: Hashed password
+// 1) If DB password looks like a modern hash -> verify with password_verify
 if (looks_like_hash($dbPass)) {
     if (password_verify($password, $dbPass)) {
-        // Update hash if needed
+        // optionally rehash if algorithm changed
         if (password_needs_rehash($dbPass, PASSWORD_DEFAULT)) {
             $newHash = password_hash($password, PASSWORD_DEFAULT);
             $u = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
             if ($u) {
                 $u->bind_param('si', $newHash, $user['id']);
-                $u->execute();
+                @$u->execute();
                 $u->close();
+            } else {
+                error_log("auth.php: failed to prepare rehash update: " . $conn->error);
             }
         }
-
+        // Set session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'] ?? '';
@@ -76,16 +95,22 @@ if (looks_like_hash($dbPass)) {
     }
 }
 
-// Case 2: Plain text password (migrate to hash)
+// 2) DB password does NOT look like hash -> fallback to plain text compare
 if ($password === $dbPass) {
+    // Migrate to hash for future
     $newHash = password_hash($password, PASSWORD_DEFAULT);
     $u = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
     if ($u) {
         $u->bind_param('si', $newHash, $user['id']);
-        $u->execute();
+        if (!@$u->execute()) {
+            error_log("auth.php: Failed to update password hash for user {$user['id']}: " . $u->error);
+        }
         $u->close();
+    } else {
+        error_log("auth.php: Prepare failed for updating hash: " . $conn->error);
     }
 
+    // Set session
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['role'] = $user['role'] ?? '';
@@ -96,4 +121,3 @@ if ($password === $dbPass) {
 // Wrong password
 echo json_encode(['success' => false, 'message' => 'Incorrect password.']);
 exit;
-?>
