@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "atiera_hr4_user";  // your exact cPanel username prefix + user
 $pass = "YourStrongPassword";
-$db   = "atiera_hr4_db";
+$db   = "hr4_db";
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
