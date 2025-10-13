@@ -4,7 +4,7 @@
 $host = "localhost:3307";   // or e.g. "127.0.0.1" or "db-server.example.com"
 $user = "root";
 $pass = "";
-$db   = "hr4_db";
+$db   = "hr4_hr4_db";
 
 // Create connection
 $conn = new mysqli($host, $user, $pass, $db);
