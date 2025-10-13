@@ -1,19 +1,12 @@
 <?php
-// db.php - Database Connection File
-// UPDATE these values for your environment (localhost vs live)
-$host = "localhost:3307";   // or e.g. "127.0.0.1" or "db-server.example.com"
-$user = "root";
-$pass = "";
-$db   = "hr4_hr4_db";
+$servername = "localhost";  // CyberPanel uses localhost for MySQL
+$username   = "hr4_user";
+$password   = "hr412345";
+$dbname     = "hr4_hr4_db";
 
-// Create connection
-$conn = new mysqli($host, $user, $pass, $db);
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
-    // In production you might not want to echo this — we return JSON from endpoints instead.
-    error_log("DB connection failed: " . $conn->connect_error);
-    // For scripts that expect mysqli $conn, fail early:
-    die("Database connection failed.");
+    die("Database connection failed: " . $conn->connect_error);
 }
 ?>
