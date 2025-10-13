@@ -387,33 +387,17 @@ if (isset($_SESSION['user_id'])) {
       }
 
       // failure -> increase tries (client-side lock)
-try {
-  const res = await fetch("auth.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const text = await res.text(); // get raw text
-  let data;
-
-  try {
-    data = JSON.parse(text); // safely parse JSON
-  } catch {
-    throw new Error("Invalid JSON from server: " + text);
-  }
-
-  if (data.success) {
-    // success handling
-  } else {
-    showError(data.message || "Invalid credentials.");
-  }
-
-} catch (err) {
-  console.error(err);
-  showError("Server error, please try again.");
-}
-
+      const tries = num(triesKey) + 1; setNum(triesKey, tries);
+      if (tries >= MAX_TRIES) {
+        const until = Date.now() + LOCK_MS;
+        localStorage.setItem(lockKey, String(until));
+        startLockCountdown(until);
+      } else {
+        stopLoading(false);
+        const msg = data.message || 'Invalid credentials.';
+        showError(`${msg} Attempt ${tries}/${MAX_TRIES}.`);
+        pwEl.focus(); pwEl.select();
+      }
 
     } catch (err) {
       stopLoading(false);
