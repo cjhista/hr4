@@ -121,3 +121,42 @@ if ($password === $dbPass) {
 // Wrong password
 echo json_encode(['success' => false, 'message' => 'Incorrect password.']);
 exit;
+<?php
+header('Content-Type: application/json');
+
+// Disable error display in production
+ini_set('display_errors', 0);
+error_reporting(0);
+
+require_once 'db.php'; // your database connection
+
+$response = [];
+
+try {
+    // Example: login logic
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($user = $result->fetch_assoc()) {
+            if (password_verify($password, $user['password'])) {
+                echo json_encode(['success' => true, 'message' => 'Login successful']);
+                exit;
+            }
+        }
+
+        echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
+        exit;
+    }
+} catch (Throwable $e) {
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    exit;
+}
+?>
