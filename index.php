@@ -387,6 +387,11 @@ if (isset($_SESSION['user_id'])) {
       }
 
       // failure -> increase tries (client-side lock)
+      const res = await fetch('auth.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
       const tries = num(triesKey) + 1; setNum(triesKey, tries);
       if (tries >= MAX_TRIES) {
         const until = Date.now() + LOCK_MS;
