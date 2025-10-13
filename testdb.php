@@ -1,4 +1,4 @@
 <?php
 include 'db.php';
-echo "Database connection is working!";
+echo "✅ Database connection is working!";
 ?>
