@@ -4,6 +4,10 @@ if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit;
 }
+
+// Generate CAPTCHA
+$captcha_code = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 6);
+$_SESSION['captcha_code'] = $captcha_code;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -132,6 +136,42 @@ if (isset($_SESSION['user_id'])) {
 
   /* ===== Small utility for tiny caption spacing on mobile ===== */
   .caption{ letter-spacing:.2px }
+
+  /* ===== CAPTCHA Styles ===== */
+  .captcha-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .captcha-code {
+    flex: 1;
+    background: linear-gradient(45deg, #1b2f73, #2342a6);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(27, 47, 115, 0.3);
+    user-select: none;
+  }
+  .refresh-captcha {
+    background: var(--blue-600);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .refresh-captcha:hover {
+    background: var(--blue-700);
+    transform: scale(1.05);
+  }
 </style>
 </head>
 
@@ -216,6 +256,26 @@ if (isset($_SESSION['user_id'])) {
           </div>
         </div>
 
+        <!-- CAPTCHA Section -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="captcha" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Security Code</label>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Case sensitive</span>
+          </div>
+          <div class="captcha-container">
+            <div class="captcha-code" id="captchaDisplay"><?php echo $captcha_code; ?></div>
+            <button type="button" id="refreshCaptcha" class="refresh-captcha" title="Refresh CAPTCHA">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M17.65 6.35A8 8 0 1 0 19 12h-2a6 6 0 1 1-1.76-4.24l1.42-1.42ZM12 4a8 8 0 0 1 8 8h-2a6 6 0 0 0-9.9-4.56L6.34 6.34A8 8 0 0 1 12 4Z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div class="field mt-2">
+            <input id="captcha" name="captcha" type="text" class="input" placeholder=" " required maxlength="6">
+            <label for="captcha" class="float-label">Enter the code above</label>
+          </div>
+        </div>
+
         <!-- Submit -->
         <button id="submitBtn" type="submit" class="btn" aria-live="polite">
           <span id="btnIcon" aria-hidden="true">
@@ -248,6 +308,27 @@ if (isset($_SESSION['user_id'])) {
   const pwLabel   = $('#pwLabel');
   const modeBtn   = $('#modeBtn');
   const wmImg     = $('#wm');
+  const captchaInput = $('#captcha');
+  const captchaDisplay = $('#captchaDisplay');
+  const refreshCaptchaBtn = $('#refreshCaptcha');
+
+  /* ---------- CAPTCHA Functions ---------- */
+  function refreshCaptcha() {
+    fetch('refresh_captcha.php')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          captchaDisplay.textContent = data.captcha_code;
+          captchaInput.value = '';
+          captchaInput.focus();
+        }
+      })
+      .catch(err => {
+        console.error('CAPTCHA refresh failed:', err);
+      });
+  }
+
+  refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
 
   /* ---------- Dark mode toggle: keep watermark clearly visible ---------- */
   modeBtn.addEventListener('click', ()=>{
@@ -364,7 +445,10 @@ if (isset($_SESSION['user_id'])) {
 
     const u = userEl.value.trim();
     const p = pwEl.value;
+    const c = captchaInput.value.trim();
+    
     if (!u || !p) { showError('Please enter username/email and password.'); return; }
+    if (!c) { showError('Please enter the CAPTCHA code.'); return; }
 
     startLoading();
 
@@ -372,7 +456,7 @@ if (isset($_SESSION['user_id'])) {
       const res = await fetch('auth.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
+        body: JSON.stringify({ username: u, password: p, captcha: c })
       });
       if (!res.ok) throw new Error('network');
       const data = await res.json();
@@ -384,6 +468,11 @@ if (isset($_SESSION['user_id'])) {
         // small delay so "Success" is visible briefly
         setTimeout(()=> window.location.href = 'dashboard.php', 250);
         return;
+      }
+
+      // CAPTCHA failed - refresh it
+      if (data.captcha_error) {
+        refreshCaptcha();
       }
 
       // failure -> increase tries (client-side lock)

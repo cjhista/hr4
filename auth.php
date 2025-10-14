@@ -1,5 +1,5 @@
 <?php
-// auth.php - JSON login endpoint
+// auth.php - JSON login endpoint with CAPTCHA
 // Debugging: set to 0 in production
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
@@ -31,6 +31,23 @@ $input = json_decode($raw, true);
 // Basic input check
 $username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
+$captcha = trim($input['captcha'] ?? '');
+
+// CAPTCHA verification
+if (!isset($_SESSION['captcha_code']) || empty($captcha)) {
+    echo json_encode(['success' => false, 'message' => 'CAPTCHA verification failed.', 'captcha_error' => true]);
+    exit;
+}
+
+if (strtoupper($captcha) !== strtoupper($_SESSION['captcha_code'])) {
+    // Clear the used CAPTCHA
+    unset($_SESSION['captcha_code']);
+    echo json_encode(['success' => false, 'message' => 'Invalid CAPTCHA code.', 'captcha_error' => true]);
+    exit;
+}
+
+// Clear CAPTCHA after successful verification
+unset($_SESSION['captcha_code']);
 
 if ($username === '' || $password === '') {
     echo json_encode(['success' => false, 'message' => 'Username/email and password are required.']);
@@ -121,3 +138,4 @@ if ($password === $dbPass) {
 // Wrong password
 echo json_encode(['success' => false, 'message' => 'Incorrect password.']);
 exit;
+?>
