@@ -172,6 +172,27 @@ $_SESSION['captcha_code'] = $captcha_code;
     background: var(--blue-700);
     transform: scale(1.05);
   }
+
+  /* ===== OTP Section Styles ===== */
+  .otp-input {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 8px;
+  }
+  .otp-timer {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+  }
+  .resend-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Hide OTP section by default */
+  #otpSection {
+    display: none;
+  }
 </style>
 </head>
 
@@ -223,7 +244,6 @@ $_SESSION['captcha_code'] = $captcha_code;
         <div class="field">
           <input id="username" name="username" type="text" autocomplete="username" class="input peer" placeholder=" " required aria-describedby="userHelp">
           <label for="username" class="float-label">Username or Email</label>
-          <!-- underline removed -->
           <span class="icon-right" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.67-8 5v1h16v-1c0-2.33-2.67-5-8-5Z" fill="currentColor"/></svg>
           </span>
@@ -239,7 +259,6 @@ $_SESSION['captcha_code'] = $captcha_code;
           <div class="field">
             <input id="password" name="password" type="password" autocomplete="current-password" class="input pr-12 peer" placeholder=" " required>
             <label for="password" class="float-label">••••••••</label>
-            <!-- underline removed -->
             <div class="icon-right flex items-center gap-1">
               <button type="button" id="togglePw" class="w-9 h-9 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center" aria-label="Show password" aria-pressed="false" title="Show/Hide password">
                 <svg id="eyeOn" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7Zm0 11a4 4 0 1 1 4-4 4 4 0 0 1-4 4Z" fill="currentColor"/></svg>
@@ -247,7 +266,7 @@ $_SESSION['captcha_code'] = $captcha_code;
               </button>
             </div>
           </div>
-          <!-- Strength meter (neutral color, not gold) -->
+          <!-- Strength meter -->
           <div class="mt-2 flex items-center gap-2">
             <div class="h-1.5 flex-1 rounded bg-slate-200 dark:bg-slate-700 overflow-hidden" aria-hidden="true">
               <div id="pwBar" class="h-full w-1/12 bg-blue-600 dark:bg-blue-500"></div>
@@ -257,7 +276,7 @@ $_SESSION['captcha_code'] = $captcha_code;
         </div>
 
         <!-- CAPTCHA Section -->
-        <div>
+        <div id="captchaSection">
           <div class="flex items-center justify-between mb-1">
             <label for="captcha" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Security Code</label>
             <span class="text-xs text-slate-500 dark:text-slate-400">Case sensitive</span>
@@ -273,6 +292,30 @@ $_SESSION['captcha_code'] = $captcha_code;
           <div class="field mt-2">
             <input id="captcha" name="captcha" type="text" class="input" placeholder=" " required maxlength="6">
             <label for="captcha" class="float-label">Enter the code above</label>
+          </div>
+        </div>
+
+        <!-- OTP Section (initially hidden) -->
+        <div id="otpSection" class="space-y-4">
+          <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+            <h4 class="text-lg font-semibold text-center mb-3">Verification Required</h4>
+            <p class="text-sm text-slate-600 dark:text-slate-400 text-center mb-4">
+              We've sent a 6-digit verification code to your email. Please enter it below.
+            </p>
+            
+            <div class="field">
+              <input id="otpCode" name="otp_code" type="text" class="input otp-input" placeholder=" " required maxlength="6" pattern="[0-9]{6}">
+              <label for="otpCode" class="float-label">Enter 6-digit code</label>
+            </div>
+            
+            <div class="flex justify-between items-center text-sm">
+              <button type="button" id="resendOtp" class="text-blue-600 dark:text-blue-400 hover:underline resend-btn" disabled>
+                Resend Code
+              </button>
+              <span id="otpTimer" class="text-slate-500 dark:text-slate-400 otp-timer">10:00</span>
+            </div>
+            
+            <input type="hidden" id="otpUserId" name="user_id">
           </div>
         </div>
 
@@ -311,6 +354,12 @@ $_SESSION['captcha_code'] = $captcha_code;
   const captchaInput = $('#captcha');
   const captchaDisplay = $('#captchaDisplay');
   const refreshCaptchaBtn = $('#refreshCaptcha');
+  const otpSection = $('#otpSection');
+  const otpCodeInput = $('#otpCode');
+  const resendOtpBtn = $('#resendOtp');
+  const otpTimer = $('#otpTimer');
+  const otpUserId = $('#otpUserId');
+  const captchaSection = $('#captchaSection');
 
   /* ---------- CAPTCHA Functions ---------- */
   function refreshCaptcha() {
@@ -330,23 +379,115 @@ $_SESSION['captcha_code'] = $captcha_code;
 
   refreshCaptchaBtn.addEventListener('click', refreshCaptcha);
 
-  /* ---------- Dark mode toggle: keep watermark clearly visible ---------- */
+  /* ---------- Dark mode toggle ---------- */
   modeBtn.addEventListener('click', ()=>{
     const root = document.documentElement;
     const dark = root.classList.toggle('dark');
     modeBtn.setAttribute('aria-pressed', String(dark));
-    // Nudge watermark for a tiny parallax pop
     wmImg.style.transform = 'scale(1.01)';
     setTimeout(()=> wmImg.style.transform = '', 220);
   });
 
-  /* ---------- Small helpers ---------- */
-  const showError = (msg)=>{ alertBox.textContent = msg; alertBox.classList.remove('hidden'); };
+  /* ---------- Helper functions ---------- */
+  const showError = (msg)=>{ 
+    alertBox.textContent = msg; 
+    alertBox.classList.remove('hidden'); 
+    infoBox.classList.add('hidden');
+  };
   const hideError = ()=> alertBox.classList.add('hidden');
-  const showInfo  = (msg)=>{ infoBox.textContent = msg; infoBox.classList.remove('hidden'); };
+  const showInfo  = (msg)=>{ 
+    infoBox.textContent = msg; 
+    infoBox.classList.remove('hidden');
+    alertBox.classList.add('hidden');
+  };
   const hideInfo  = ()=> infoBox.classList.add('hidden');
 
-  // Caps Lock chip
+  /* ---------- OTP Functions ---------- */
+  function showOTPSection(userId) {
+    otpUserId.value = userId;
+    otpSection.style.display = 'block';
+    captchaSection.style.display = 'none';
+    
+    // Hide regular form fields
+    document.querySelectorAll('.field:not(#otpSection .field)').forEach(field => {
+      field.style.display = 'none';
+    });
+    
+    // Focus on OTP input
+    setTimeout(() => otpCodeInput.focus(), 100);
+    
+    // Start timer
+    startOTPTimer();
+  }
+
+  function hideOTPSection() {
+    otpSection.style.display = 'none';
+    captchaSection.style.display = 'block';
+    
+    // Show regular form fields
+    document.querySelectorAll('.field').forEach(field => {
+      field.style.display = 'block';
+    });
+  }
+
+  // OTP Timer
+  let otpTimerInterval = null;
+  function startOTPTimer() {
+    let timeLeft = 600; // 10 minutes in seconds
+    
+    const updateTimer = () => {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      otpTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      if (timeLeft <= 0) {
+        clearInterval(otpTimerInterval);
+        resendOtpBtn.classList.remove('opacity-50');
+        resendOtpBtn.disabled = false;
+        resendOtpBtn.textContent = 'Resend Code';
+      } else {
+        timeLeft--;
+      }
+    };
+    
+    clearInterval(otpTimerInterval);
+    resendOtpBtn.classList.add('opacity-50');
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.textContent = 'Resend Code';
+    updateTimer();
+    otpTimerInterval = setInterval(updateTimer, 1000);
+  }
+
+  // Resend OTP
+  function resendOTP(userId) {
+    startLoading();
+    
+    fetch('send_otp.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    })
+    .then(response => response.json())
+    .then(data => {
+      stopLoading(false);
+      if (data.success) {
+        showInfo('Verification code resent successfully. Please check your email.');
+        startOTPTimer();
+        otpCodeInput.value = '';
+        otpCodeInput.focus();
+      } else {
+        showError(data.message || 'Failed to resend code.');
+      }
+    })
+    .catch(err => {
+      stopLoading(false);
+      console.error('Resend OTP failed:', err);
+      showError('Failed to resend verification code.');
+    });
+  }
+
+  /* ---------- Event Listeners ---------- */
+  // Caps Lock detection
   function caps(e){
     const on = e.getModifierState && e.getModifierState('CapsLock');
     if (capsNote) capsNote.classList.toggle('hidden', !on);
@@ -354,7 +495,7 @@ $_SESSION['captcha_code'] = $captcha_code;
   pwEl.addEventListener('keyup', caps);
   pwEl.addEventListener('keydown', caps);
 
-  // Password meter (neutral blue)
+  // Password meter
   pwEl.addEventListener('input', () => {
     const v = pwEl.value;
     let score = 0;
@@ -379,7 +520,15 @@ $_SESSION['captcha_code'] = $captcha_code;
     pwEl.focus();
   });
 
-  // Optional logout info via ?logout=1
+  // Resend OTP button
+  resendOtpBtn.addEventListener('click', () => {
+    const userId = otpUserId.value;
+    if (userId && !resendOtpBtn.disabled) {
+      resendOTP(userId);
+    }
+  });
+
+  // Handle logout info
   (function handleLogout(){
     const q = new URLSearchParams(location.search);
     if (q.get('logout') === '1') {
@@ -388,7 +537,7 @@ $_SESSION['captcha_code'] = $captcha_code;
     }
   })();
 
-  /* ---------- Auth + lockout with LIVE countdown (client-side lock) ---------- */
+  /* ---------- Auth + lockout ---------- */
   const MAX_TRIES = 5, LOCK_MS = 60_000;
   const triesKey = 'atiera_login_tries';
   const lockKey  = 'atiera_login_lock';
@@ -422,7 +571,7 @@ $_SESSION['captcha_code'] = $captcha_code;
       showError(`Too many attempts. Try again in ${mmss(left)}.`);
     };
     tick();
-    lockTimer = setInterval(tick, 250); // smooth countdown
+    lockTimer = setInterval(tick, 250);
   }
 
   function checkLock(){
@@ -431,42 +580,99 @@ $_SESSION['captcha_code'] = $captcha_code;
     return false;
   }
 
-  function startLoading(){ submitBtn.disabled = true; btnText.textContent = 'Checking…'; }
+  function startLoading(){ 
+    submitBtn.disabled = true; 
+    btnText.textContent = 'Checking…'; 
+  }
+  
   function stopLoading(ok=false){
-    if (ok){ btnText.textContent = 'Success'; }
-    else { btnText.textContent = 'Sign In'; submitBtn.disabled = false; }
+    if (ok){ 
+      btnText.textContent = 'Success'; 
+    } else { 
+      btnText.textContent = 'Sign In'; 
+      submitBtn.disabled = false; 
+    }
   }
 
-  // Submit handler — send credentials to auth.php (expects JSON { success: bool, message?: string })
+  // Submit handler
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    hideError(); hideInfo();
+    hideError(); 
+    hideInfo();
+    
     if (checkLock()) return;
 
     const u = userEl.value.trim();
     const p = pwEl.value;
     const c = captchaInput.value.trim();
+    const otpCode = otpCodeInput.value.trim();
+    const userId = otpUserId.value;
     
-    if (!u || !p) { showError('Please enter username/email and password.'); return; }
-    if (!c) { showError('Please enter the CAPTCHA code.'); return; }
+    // Check if we're in OTP verification step
+    const isOtpStep = otpSection.style.display === 'block';
+    
+    if (!isOtpStep) {
+      // Regular login step
+      if (!u || !p) { 
+        showError('Please enter username/email and password.'); 
+        return; 
+      }
+      if (!c) { 
+        showError('Please enter the CAPTCHA code.'); 
+        return; 
+      }
+    } else {
+      // OTP verification step
+      if (!otpCode) { 
+        showError('Please enter the verification code.'); 
+        return; 
+      }
+      if (!userId) { 
+        showError('Session error. Please try again.'); 
+        return; 
+      }
+    }
 
     startLoading();
 
     try {
+      let payload;
+      if (isOtpStep) {
+        payload = { 
+          otp_step: 'verify', 
+          user_id: userId, 
+          otp_code: otpCode 
+        };
+      } else {
+        payload = { 
+          username: u, 
+          password: p, 
+          captcha: c 
+        };
+      }
+
       const res = await fetch('auth.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p, captcha: c })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('network');
+      
+      if (!res.ok) throw new Error('Network error');
       const data = await res.json();
 
       if (data.success) {
-        // successful -> server started session
+        if (data.requires_otp && data.user_id) {
+          // Show OTP section
+          showOTPSection(data.user_id);
+          showInfo(data.message || 'Verification code sent to your email.');
+          stopLoading(false);
+          return;
+        }
+
+        // Successful login
         sessionStorage.setItem('atiera_logged_in','1');
         stopLoading(true);
-        // small delay so "Success" is visible briefly
-        setTimeout(()=> window.location.href = 'dashboard.php', 250);
+        setTimeout(()=> window.location.href = 'dashboard.php', 500);
         return;
       }
 
@@ -475,8 +681,10 @@ $_SESSION['captcha_code'] = $captcha_code;
         refreshCaptcha();
       }
 
-      // failure -> increase tries (client-side lock)
-      const tries = num(triesKey) + 1; setNum(triesKey, tries);
+      // Handle failures
+      const tries = num(triesKey) + 1; 
+      setNum(triesKey, tries);
+      
       if (tries >= MAX_TRIES) {
         const until = Date.now() + LOCK_MS;
         localStorage.setItem(lockKey, String(until));
@@ -485,12 +693,19 @@ $_SESSION['captcha_code'] = $captcha_code;
         stopLoading(false);
         const msg = data.message || 'Invalid credentials.';
         showError(`${msg} Attempt ${tries}/${MAX_TRIES}.`);
-        pwEl.focus(); pwEl.select();
+        
+        if (isOtpStep) {
+          otpCodeInput.focus(); 
+          otpCodeInput.select();
+        } else {
+          pwEl.focus(); 
+          pwEl.select();
+        }
       }
 
     } catch (err) {
       stopLoading(false);
-      console.error(err);
+      console.error('Login error:', err);
       showError("Server error, please try again.");
     }
   });
@@ -501,3 +716,4 @@ $_SESSION['captcha_code'] = $captcha_code;
 
 </body>
 </html>
+
