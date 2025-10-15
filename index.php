@@ -278,7 +278,7 @@ $_SESSION['captcha_code'] = $captcha_code;
         <!-- CAPTCHA Section -->
         <div id="captchaSection">
           <div class="flex items-center justify-between mb-1">
-            <label for="captcha" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Security Code</label>
+            <label for="captcha" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Captcha Code</label>
             <span class="text-xs text-slate-500 dark:text-slate-400">Case sensitive</span>
           </div>
           <div class="captcha-container">
