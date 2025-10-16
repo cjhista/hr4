@@ -60,7 +60,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Change Profile Image
-    if (isset($_POST['change_image']) && isset($_FILES['profile_image'])) {
+    
+        } else {if (isset($_POST['change_image']) && isset($_FILES['profile_image'])) {
         $file = $_FILES['profile_image'];
         $allowed = ['jpg','jpeg','png','gif'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -75,7 +76,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             } else {
                 $error = "Failed to update image.";
             }
-        } else {
             $error = "Invalid file type.";
         }
     }
